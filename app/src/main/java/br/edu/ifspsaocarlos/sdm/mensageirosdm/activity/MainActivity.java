@@ -1,5 +1,6 @@
 package br.edu.ifspsaocarlos.sdm.mensageirosdm.activity;
 
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -23,16 +24,28 @@ import java.util.List;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.R;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.adapter.ContactAdapter;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Contact;
+import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.User;
+import io.realm.Realm;
+import io.realm.RealmConfiguration;
+import io.realm.RealmQuery;
 
 public class MainActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
     private ContactAdapter contactAdapter;
 
+    private Realm realm;
+    private RealmConfiguration realmConfig;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // Create the Realm configuration
+        realmConfig = new RealmConfiguration.Builder(this).build();
+        // Open the Realm for the UI thread.
+        realm = Realm.getInstance(realmConfig);
 
         LinearLayoutManager mLayoutManager = new LinearLayoutManager(this);
 
@@ -43,6 +56,23 @@ public class MainActivity extends AppCompatActivity {
         FetchUsersTask fetchUsersTask = new FetchUsersTask();
         fetchUsersTask.execute("http://www.nobile.pro.br/sdm/mensageiro/contato");
     }
+
+    /*
+    private void checkUser() {
+        RealmQuery<User> query = realm.where(User.class);
+        query.count();
+
+        Log.e("SDM", "query size: " + query.count());
+
+        if (query.count() <= 0) {
+            showUserActivity();
+        }
+    }
+
+    private void showUserActivity() {
+        Intent intent = new Intent(this, UserActivity.class);
+        startActivity(intent);
+    }*/
 
     private class FetchUsersTask extends AsyncTask<String, Void, List<Contact>> {
 
