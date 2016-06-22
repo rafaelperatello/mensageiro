@@ -96,11 +96,3 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 }
-
-
-/*
-        List<Contact> contactList = new ArrayList<>();
-        contactList.add(new Contact("Contato 1", "Mensagem 1", "12:00"));
-        contactList.add(new Contact("Contato 2", "Mensagem 2", "12:00"));
-        contactList.add(new Contact("Contato 3", "Mensagem 3", "12:00"));
-*/
