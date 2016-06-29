@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">MensageiroSDM</string>
+    <string name="app_name">Messenger</string>
 
     <string name="hint_user_name">Nome completo</string>
     <string name="hint_nickname">Apelido</string>
