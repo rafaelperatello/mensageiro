@@ -1,43 +1,35 @@
 package br.edu.ifspsaocarlos.sdm.mensageirosdm.model;
 
 public class Contact {
-
-    private String name;
-    private String message;
-    private String time;
+    private String id;
+    private String nome_completo;
+    private String apelido;
 
     public Contact() {
 
     }
 
-    public Contact(String name, String message, String time) {
-        this.name = name;
-        this.message = message;
-        this.time = time;
+    public String getId() {
+        return id;
     }
 
-    public String getName() {
-        return name;
+    public void setId(String id) {
+        this.id = id;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public String getNome_completo() {
+        return nome_completo;
     }
 
-    public String getMessage() {
-        return message;
+    public void setNome_completo(String nome_completo) {
+        this.nome_completo = nome_completo;
     }
 
-    public void setMessage(String message) {
-        this.message = message;
+    public String getApelido() {
+        return apelido;
     }
 
-    public String getTime() {
-        return time;
+    public void setApelido(String apelido) {
+        this.apelido = apelido;
     }
-
-    public void setTime(String time) {
-        this.time = time;
-    }
-
 }
