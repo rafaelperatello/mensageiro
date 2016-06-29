@@ -31,9 +31,8 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ViewHold
     public void onBindViewHolder(ViewHolder holder, int position) {
         Contact c = contactList.get(position);
 
-        holder.mTextViewName.setText(c.getName());
-        holder.mTextViewMessage.setText(c.getMessage());
-        holder.mTextViewTime.setText(c.getTime());
+        holder.mTextViewName.setText(c.getNome_completo());
+        holder.mTextViewNickname.setText(c.getApelido());
     }
 
     @Override
@@ -43,15 +42,13 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ViewHold
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
         public TextView mTextViewName;
-        public TextView mTextViewMessage;
-        public TextView mTextViewTime;
+        public TextView mTextViewNickname;
 
 
         public ViewHolder(View v) {
             super(v);
             mTextViewName = (TextView) v.findViewById(R.id.text_name);
-            mTextViewMessage = (TextView) v.findViewById(R.id.text_message);
-            mTextViewTime = (TextView) v.findViewById(R.id.text_time);
+            mTextViewNickname = (TextView) v.findViewById(R.id.text_nickname);
 
             v.setOnClickListener(new View.OnClickListener() {
                 @Override
