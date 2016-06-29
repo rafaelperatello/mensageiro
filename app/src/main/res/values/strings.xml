@@ -1,3 +1,11 @@
 <resources>
     <string name="app_name">MensageiroSDM</string>
+
+    <string name="hint_user_name">Nome completo</string>
+    <string name="hint_nickname">Apelido</string>
+
+    <string name="dialog_content_error_invalid">Preencha todos os campos</string>
+    <string name="dialog_content_error_saving_profile">Erro ao salvar usuário. Tente novamente.</string>
+    <string name="dialog_content_error_fetching_user">Erro ao recuperar contatos. Tente novamente.</string>
+    <string name="dialog_button_ok">OK</string>
 </resources>
