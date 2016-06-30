@@ -1,34 +1,19 @@
 package br.edu.ifspsaocarlos.sdm.mensageirosdm.model;
 
-import android.os.Parcel;
-import android.os.Parcelable;
+import io.realm.RealmObject;
+import io.realm.annotations.PrimaryKey;
 
-public class Contact implements Parcelable {
+public class Contact extends RealmObject {
+
+    @PrimaryKey
     private String id;
     private String nome_completo;
     private String apelido;
+    private ContactMessage contactMessage;
 
     public Contact() {
 
     }
-
-    protected Contact(Parcel in) {
-        id = in.readString();
-        nome_completo = in.readString();
-        apelido = in.readString();
-    }
-
-    public static final Creator<Contact> CREATOR = new Creator<Contact>() {
-        @Override
-        public Contact createFromParcel(Parcel in) {
-            return new Contact(in);
-        }
-
-        @Override
-        public Contact[] newArray(int size) {
-            return new Contact[size];
-        }
-    };
 
     public String getId() {
         return id;
@@ -54,15 +39,11 @@ public class Contact implements Parcelable {
         this.apelido = apelido;
     }
 
-    @Override
-    public int describeContents() {
-        return 0;
+    public ContactMessage getContactMessage() {
+        return contactMessage;
     }
 
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        dest.writeString(id);
-        dest.writeString(nome_completo);
-        dest.writeString(apelido);
+    public void setContactMessage(ContactMessage contactMessage) {
+        this.contactMessage = contactMessage;
     }
 }

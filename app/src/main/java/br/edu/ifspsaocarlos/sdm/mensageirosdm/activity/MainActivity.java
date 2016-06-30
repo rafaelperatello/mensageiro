@@ -1,9 +1,11 @@
 package br.edu.ifspsaocarlos.sdm.mensageirosdm.activity;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 
 import com.android.volley.Request;
 import com.android.volley.Response;
@@ -21,10 +23,13 @@ import br.edu.ifspsaocarlos.sdm.mensageirosdm.R;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.adapter.ContactAdapter;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Contact;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.network.VolleyHelper;
+import br.edu.ifspsaocarlos.sdm.mensageirosdm.service.FetchMessagesService;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Constants;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Helpers;
 import io.realm.Realm;
 import io.realm.RealmConfiguration;
+import io.realm.RealmQuery;
+import io.realm.RealmResults;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -40,10 +45,10 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         // Create the Realm configuration
-        realmConfig = new RealmConfiguration.Builder(this).build();
-        // Open the Realm for the UI thread.
-        realm = Realm.getInstance(realmConfig);
+        realmConfig = new RealmConfiguration.Builder(getApplicationContext()).build();
+        Realm.setDefaultConfiguration(realmConfig);
 
+        realm = Realm.getDefaultInstance();
 
         LinearLayoutManager mLayoutManager = new LinearLayoutManager(this);
         recyclerView = (RecyclerView) findViewById(R.id.recycler);
@@ -51,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setHasFixedSize(false);
 
         fetchUsers();
+        startMessagesService();
     }
 
     private void fetchUsers() {
@@ -81,14 +87,48 @@ public class MainActivity extends AppCompatActivity {
 
             for (int i = 0; i < jsonArray.length(); i++) {
                 Contact contact = gson.fromJson(jsonArray.getJSONObject(i).toString(), Contact.class);
-                contactList.add(contact);
+
+                if (!contact.getId().equals(Helpers.getUserId(this)))
+                    contactList.add(contact);
             }
 
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        contactAdapter = new ContactAdapter(contactList);
+        saveContacts(contactList);
+    }
+
+    private void saveContacts(final List<Contact> contactList) {
+        realm.executeTransactionAsync(new Realm.Transaction() {
+            @Override
+            public void execute(Realm bgRealm) {
+                bgRealm.copyToRealmOrUpdate(contactList);
+            }
+        }, new Realm.Transaction.OnSuccess() {
+            @Override
+            public void onSuccess() {
+                updateAdapter();
+            }
+        }, new Realm.Transaction.OnError() {
+            @Override
+            public void onError(Throwable error) {
+                Log.d("SDM", "onError: ");
+                updateAdapter();
+            }
+        });
+    }
+
+    private void updateAdapter() {
+        RealmQuery<Contact> query = realm.where(Contact.class);
+        RealmResults<Contact> result = query.findAll();
+
+        contactAdapter = new ContactAdapter(result.subList(0, result.size()));
         recyclerView.setAdapter(contactAdapter);
+    }
+
+    private void startMessagesService() {
+        Intent i = new Intent(this, FetchMessagesService.class);
+        startService(i);
     }
 }

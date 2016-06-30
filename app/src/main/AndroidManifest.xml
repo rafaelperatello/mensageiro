@@ -18,6 +18,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".service.FetchMessagesService"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="FETCH_MESSAGES_SERVICE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>

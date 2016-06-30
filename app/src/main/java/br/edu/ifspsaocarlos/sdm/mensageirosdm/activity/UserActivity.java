@@ -33,7 +33,6 @@ public class UserActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_user);
 
-
         editName = (EditText) findViewById(R.id.edit_name);
         editNickname = (EditText) findViewById(R.id.edit_nickname);
 
@@ -45,7 +44,10 @@ public class UserActivity extends AppCompatActivity {
             }
         });
 
-        checkUser();
+        // TODO: 29/06/2016 uncomment
+//        checkUser();
+
+        saveUserOnPreferences("315");
     }
 
     private void checkUser() {
