@@ -29,9 +29,12 @@
             android:exported="false">
             <intent-filter>
                 <action android:name="FETCH_MESSAGES_SERVICE" />
+
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </service>
+
+        <activity android:name=".activity.MessageActivity"></activity>
     </application>
 
 </manifest>

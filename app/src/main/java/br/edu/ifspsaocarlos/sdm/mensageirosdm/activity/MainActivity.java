@@ -134,6 +134,12 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setAdapter(contactAdapter);
     }
 
+    private void startMessageActivity(String destinatario) {
+        Intent intent = new Intent(this, MessageActivity.class);
+        intent.putExtra(Constants.RECIPIENT_USER_KEY, destinatario);
+        startActivity(intent);
+    }
+
     private void startMessagesService() {
         Intent i = new Intent(this, FetchMessagesService.class);
         startService(i);
