@@ -27,7 +27,6 @@ import br.edu.ifspsaocarlos.sdm.mensageirosdm.service.FetchMessagesService;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Constants;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Helpers;
 import io.realm.Realm;
-import io.realm.RealmConfiguration;
 import io.realm.RealmQuery;
 import io.realm.RealmResults;
 
@@ -36,22 +35,17 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private ContactAdapter contactAdapter;
 
-    private Realm realm;
-    private RealmConfiguration realmConfig;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // Create the Realm configuration
-        realmConfig = new RealmConfiguration.Builder(getApplicationContext()).build();
-        Realm.setDefaultConfiguration(realmConfig);
-
-        realm = Realm.getDefaultInstance();
-
         LinearLayoutManager mLayoutManager = new LinearLayoutManager(this);
         recyclerView = (RecyclerView) findViewById(R.id.recycler);
+        /**
+         * O erro: No adapter attached; skipping layout. Acontece pois não esta setando o adapter
+         * antes do layoutmanager.
+         */
         recyclerView.setLayoutManager(mLayoutManager);
         recyclerView.setHasFixedSize(false);
 
@@ -100,26 +94,39 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void saveContacts(final List<Contact> contactList) {
-        realm.executeTransactionAsync(new Realm.Transaction() {
-            @Override
-            public void execute(Realm bgRealm) {
-                bgRealm.copyToRealmOrUpdate(contactList);
-            }
-        }, new Realm.Transaction.OnSuccess() {
-            @Override
-            public void onSuccess() {
-                updateAdapter();
-            }
-        }, new Realm.Transaction.OnError() {
-            @Override
-            public void onError(Throwable error) {
-                Log.d("SDM", "onError: ");
-                updateAdapter();
-            }
-        });
+        if (contactList != null) {
+            Realm realm = Realm.getDefaultInstance();
+            //        realm.executeTransaction(new Realm.Transaction() {
+            //            @Override
+            //            public void execute(Realm realm) {
+            //                realm.copyToRealmOrUpdate(contactList);
+            //            }
+            //        });
+            //        updateAdapter();
+
+            realm.executeTransactionAsync(new Realm.Transaction() {
+                @Override
+                public void execute(Realm bgRealm) {
+                    bgRealm.copyToRealmOrUpdate(contactList);
+//                    bgRealm.commitTransaction();
+                }
+            }, new Realm.Transaction.OnSuccess() {
+                @Override
+                public void onSuccess() {
+                    updateAdapter();
+                }
+            }, new Realm.Transaction.OnError() {
+                @Override
+                public void onError(Throwable error) {
+                    Log.d("SDM", "onError: " + error.toString());
+                    updateAdapter();
+                }
+            });
+        }
     }
 
     private void updateAdapter() {
+        Realm realm = Realm.getDefaultInstance();
         RealmQuery<Contact> query = realm.where(Contact.class);
         RealmResults<Contact> result = query.findAll();
 

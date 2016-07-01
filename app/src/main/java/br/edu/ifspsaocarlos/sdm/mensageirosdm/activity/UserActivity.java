@@ -47,7 +47,7 @@ public class UserActivity extends AppCompatActivity {
         // TODO: 29/06/2016 uncomment
 //        checkUser();
 
-        saveUserOnPreferences("315");
+        saveUserOnPreferences("1");//315
     }
 
     private void checkUser() {
