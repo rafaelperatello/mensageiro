@@ -71,7 +71,7 @@ public class FetchMessagesService extends Service {
                     }
                 }
 
-                if ((tarefa != null) && (tarefa.getStatus() == AsyncTask.Status.PENDING)) {
+                if (tarefa != null) {
                     tarefa.cancel(false);
                 }
             }
