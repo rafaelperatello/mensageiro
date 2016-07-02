@@ -37,7 +37,7 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
 
     @Override
     public void onContactClickListener(int position) {
-
+        startMessageActivity(contactAdapter.getItem(position).getId());
     }
 
     @Override
@@ -57,7 +57,6 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
         fetchUsers();
         startMessagesService();
     }
-
 
     private void fetchUsers() {
         JsonObjectRequest request = new JsonObjectRequest
@@ -140,9 +139,9 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
         recyclerView.setAdapter(contactAdapter);
     }
 
-    private void startMessageActivity(String destinatario) {
+    private void startMessageActivity(String recipientId) {
         Intent intent = new Intent(this, MessageActivity.class);
-        intent.putExtra(Constants.RECIPIENT_USER_KEY, destinatario);
+        intent.putExtra(Constants.RECIPIENT_USER_KEY, recipientId);
         startActivity(intent);
     }
 
@@ -150,6 +149,5 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
         Intent i = new Intent(this, FetchMessagesService.class);
         startService(i);
     }
-
 
 }
