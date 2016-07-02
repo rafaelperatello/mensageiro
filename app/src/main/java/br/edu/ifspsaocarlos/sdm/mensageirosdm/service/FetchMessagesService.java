@@ -125,7 +125,7 @@ public class FetchMessagesService extends Service {
             RealmResults<Contact> resultContacts = queryContacts.findAll();
             requestSize = resultContacts.size();
 
-            for (final Contact contact : resultContacts.subList(0, resultContacts.size())) {
+            for (Contact contact : resultContacts.subList(0, resultContacts.size())) {
                 ContactMessage conMenssage = realm.where(ContactMessage.class).equalTo("id", contact.getId()).findFirst();
 
                 if (conMenssage != null) {
