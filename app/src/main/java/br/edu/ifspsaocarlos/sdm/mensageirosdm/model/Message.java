@@ -1,8 +1,9 @@
 package br.edu.ifspsaocarlos.sdm.mensageirosdm.model;
 
+import io.realm.RealmObject;
 import io.realm.annotations.PrimaryKey;
 
-public class Message {
+public class Message extends RealmObject {
 
     @PrimaryKey
     private String id;
