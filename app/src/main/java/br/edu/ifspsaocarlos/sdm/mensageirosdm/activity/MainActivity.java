@@ -47,10 +47,6 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
 
         LinearLayoutManager mLayoutManager = new LinearLayoutManager(this);
         recyclerView = (RecyclerView) findViewById(R.id.recycler);
-        /**
-         * O erro: No adapter attached; skipping layout. Acontece pois não esta setando o adapter
-         * antes do layoutmanager.
-         */
         recyclerView.setLayoutManager(mLayoutManager);
         recyclerView.setHasFixedSize(false);
 
@@ -101,19 +97,10 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
     private void saveContacts(final List<Contact> contactList) {
         if (contactList != null) {
             Realm realm = Realm.getDefaultInstance();
-            //        realm.executeTransaction(new Realm.Transaction() {
-            //            @Override
-            //            public void execute(Realm realm) {
-            //                realm.copyToRealmOrUpdate(contactList);
-            //            }
-            //        });
-            //        updateAdapter();
-
             realm.executeTransactionAsync(new Realm.Transaction() {
                 @Override
                 public void execute(Realm bgRealm) {
                     bgRealm.copyToRealmOrUpdate(contactList);
-//                    bgRealm.commitTransaction();
                 }
             }, new Realm.Transaction.OnSuccess() {
                 @Override
@@ -141,7 +128,7 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
 
     private void startMessageActivity(String recipientId) {
         Intent intent = new Intent(this, MessageActivity.class);
-        intent.putExtra(Constants.RECIPIENT_USER_KEY, recipientId);
+        intent.putExtra(Constants.SENDER_USER_KEY, recipientId);
         startActivity(intent);
     }
 
