@@ -48,7 +48,7 @@ public class FetchMessagesService extends Service {
 
         new Thread() {
             public void run() {
-                Log.d("SDM", "run!!");
+                Log.d("SDM", "onStartCommand");
                 MyAsyncTask tarefa = new MyAsyncTask(getApplication());
 
                 while (!isServiceDestroyed) {
@@ -65,7 +65,7 @@ public class FetchMessagesService extends Service {
                             default:
                                 Thread.sleep(100);
                         }
-                        Thread.sleep(5000);
+                        Thread.sleep(10000);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -110,7 +110,7 @@ public class FetchMessagesService extends Service {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
-            Log.d("SDM", "onPreExecute");
+//            Log.d("SDM", "onPreExecute");
 
             requestQueue = Volley.newRequestQueue(context);
             userId = Helpers.getUserId(context);
@@ -118,7 +118,7 @@ public class FetchMessagesService extends Service {
 
         @Override
         protected Void doInBackground(Void... params) {
-            Log.d("SDM", "doInBackground");
+//            Log.d("SDM", "doInBackground");
             Realm realm = Realm.getDefaultInstance();
 
             RealmQuery<Contact> queryContacts = realm.where(Contact.class);
@@ -129,10 +129,10 @@ public class FetchMessagesService extends Service {
                 ContactMessage conMenssage = realm.where(ContactMessage.class).equalTo("id", contact.getId()).findFirst();
 
                 if (conMenssage != null) {
-                    Log.d("SDM", "FOR: " + conMenssage.getLastMessageId());
+//                    Log.d("SDM", "FOR: " + conMenssage.getLastMessageId());
                     fetchMessages(conMenssage.getLastMessageId(), conMenssage.getId());
                 } else {
-                    Log.d("SDM", "FOR: " + "0");
+//                    Log.d("SDM", "FOR: " + "0");
                     fetchMessages("0", contact.getId());
                 }
             }
@@ -149,7 +149,7 @@ public class FetchMessagesService extends Service {
             stringBuilder.append("/");
             stringBuilder.append(userId);
 
-            Log.d("SDM", "request: " + stringBuilder.toString());
+//            Log.d("SDM", "request: " + stringBuilder.toString());
 
             JsonObjectRequest request = new JsonObjectRequest
                     (Request.Method.GET, stringBuilder.toString(), null, new Response.Listener<JSONObject>() {
@@ -157,7 +157,7 @@ public class FetchMessagesService extends Service {
                         @Override
                         public void onResponse(JSONObject json) {
                             requestSize--;
-                            Log.d("SDM", "onResponse service " + requestSize);
+//                            Log.d("SDM", "onResponse service " + requestSize);
                             parseMessageList(json);
                         }
                     }, new Response.ErrorListener() {
@@ -165,7 +165,7 @@ public class FetchMessagesService extends Service {
                         @Override
                         public void onErrorResponse(VolleyError error) {
                             requestSize--;
-                            Log.d("SDM", "onErrorResponse service " + requestSize);
+//                            Log.d("SDM", "onErrorResponse service " + requestSize);
                         }
                     });
 
@@ -182,7 +182,7 @@ public class FetchMessagesService extends Service {
                 for (int i = 0; i < jsonArray.length(); i++) {
                     Message message = gson.fromJson(jsonArray.getJSONObject(i).toString(), Message.class);
                     messageList.add(message);
-                    Log.d("SDM", "Message: " + message.getId() + " de: " + message.getOrigem_id());
+//                    Log.d("SDM", "Message: " + message.getId() + " de: " + message.getOrigem_id());
                 }
 
             } catch (Exception e) {
@@ -193,7 +193,7 @@ public class FetchMessagesService extends Service {
         }
 
         private void saveMessages(final List<Message> messageList) {
-            Log.d("SDM", "saveMessages");
+//            Log.d("SDM", "saveMessages");
             if (messageList != null) {
                 if (messageList.size() > 0) {
                     Realm realm = Realm.getDefaultInstance();
@@ -201,18 +201,18 @@ public class FetchMessagesService extends Service {
                     realm.executeTransactionAsync(new Realm.Transaction() {
                         @Override
                         public void execute(Realm bgRealm) {
-                            Log.d("SDM", "execute message");
+//                            Log.d("SDM", "execute message");
                             bgRealm.copyToRealmOrUpdate(messageList);
                         }
                     }, new Realm.Transaction.OnSuccess() {
                         @Override
                         public void onSuccess() {
-                            Log.d("SDM", "onSuccess message: ");
+//                            Log.d("SDM", "onSuccess message: ");
                         }
                     }, new Realm.Transaction.OnError() {
                         @Override
                         public void onError(Throwable error) {
-                            Log.d("SDM", "onError message: " + error.toString());
+//                            Log.d("SDM", "onError message: " + error.toString());
                         }
                     });
 
@@ -224,25 +224,25 @@ public class FetchMessagesService extends Service {
                     conMen.setId(mensagem.getOrigem_id());
                     conMen.setLastMessageId(mensagem.getId());
 
-                    Log.d("SDM", "===================");
-                    Log.d("SDM", conMen.getId() + " - " + conMen.getLastMessageId());
-                    Log.d("SDM", "===================");
+//                    Log.d("SDM", "===================");
+//                    Log.d("SDM", conMen.getId() + " - " + conMen.getLastMessageId());
+//                    Log.d("SDM", "===================");
 
                     realm.executeTransactionAsync(new Realm.Transaction() {
                         @Override
                         public void execute(Realm bgRealm) {
-                            Log.d("SDM", "execute relação");
+//                            Log.d("SDM", "execute relação");
                             bgRealm.copyToRealmOrUpdate(conMen);
                         }
                     }, new Realm.Transaction.OnSuccess() {
                         @Override
                         public void onSuccess() {
-                            Log.d("SDM", "onSuccess relação: ");
+//                            Log.d("SDM", "onSuccess relação: ");
                         }
                     }, new Realm.Transaction.OnError() {
                         @Override
                         public void onError(Throwable error) {
-                            Log.d("SDM", "onError relação: " + error.toString());
+//                            Log.d("SDM", "onError relação: " + error.toString());
                         }
                     });
                 }
@@ -252,7 +252,7 @@ public class FetchMessagesService extends Service {
         @Override
         protected void onPostExecute(Void s) {
             super.onPostExecute(s);
-            Log.d("SDM", "onPostExecute");
+//            Log.d("SDM", "onPostExecute");
         }
     }
 }
