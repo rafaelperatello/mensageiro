@@ -20,6 +20,7 @@ import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ import java.util.List;
 
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.R;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.adapter.MessageAdapter;
+import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Contact;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Message;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Constants;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Helpers;
@@ -47,6 +49,7 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
 
     private Realm realm;
     private RealmResults<Message> resultMessages;
+    private List<Message> messageList;
 
     private RequestQueue requestQueue;
 
@@ -75,11 +78,26 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_message);
 
+        // setup volley
+        requestQueue = Volley.newRequestQueue(this);
+
+        // setup realm
+        realm = Realm.getDefaultInstance();
+
+        // current user
         userId = Helpers.getUserId(this);
+
+        // destinatário
+        Bundle extras = getIntent().getExtras();
+        if (extras != null) {
+            contactId = extras.getString(Constants.SENDER_USER_KEY);
+        }
+
+        Contact contact = realm.where(Contact.class).equalTo("id", contactId).findFirst();
 
         // setup toolBar
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setTitle("Mensagens");
+        getSupportActionBar().setTitle(contact.getNome_completo());
 
 
         // bind views
@@ -89,24 +107,12 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
         buttonSend.setOnClickListener(this);
 
 
-        // destinatário
-        Bundle extras = getIntent().getExtras();
-        if (extras != null) {
-            contactId = extras.getString(Constants.SENDER_USER_KEY);
-        }
-
-
         // setup recycler
         LinearLayoutManager mLayoutManager = new LinearLayoutManager(this);
         recyclerView.setLayoutManager(mLayoutManager);
         recyclerView.setHasFixedSize(false);
+        messageList = new ArrayList<>();
 
-
-        // setup volley
-        requestQueue = Volley.newRequestQueue(this);
-
-        // setup realm
-        realm = Realm.getDefaultInstance();
 
         // check messages
         if (Helpers.isCurrentUserSentMessagesSynchronized(this, contactId)) {
@@ -125,19 +131,19 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
                 .equalTo("origem_id", userId)
                 .findAll();
 
-//        resultMessages.addChangeListener(new RealmChangeListener<RealmResults<Message>>() {
-//            @Override
-//            public void onChange(RealmResults<Message> element) {
-//                Log.d("SDM", "onChange: " + element.toString());
-//            }
-//        });
+        resultMessages.addChangeListener(new RealmChangeListener<RealmResults<Message>>() {
+            @Override
+            public void onChange(RealmResults<Message> element) {
+                if (element.size() > messageList.size()) {
+                    updateAdapter(element);
+                }
+            }
+        });
 
         setupAdapter();
     }
 
     private void setupAdapter() {
-        // parse list
-        List<Message> messageList = new ArrayList<>();
         for (int i = 0; i < resultMessages.size(); i++) {
             messageList.add(resultMessages.get(i));
         }
@@ -156,16 +162,51 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
         adapter = new MessageAdapter(messageList, userId);
         recyclerView.setAdapter(adapter);
         recyclerView.smoothScrollToPosition(adapter.getItemCount());
-
-
-        for (Message message : messageList) {
-            Log.d("SDM", "message: " + message.getId() + " sender: " + message.getOrigem_id() + " corpo: " + message.getCorpo());
-        }
     }
+
+
+    private void updateAdapter(RealmResults<Message> element) {
+        for (int i = resultMessages.size() - 1; i < element.size(); i++) {
+            adapter.addItem(resultMessages.get(i));
+        }
+
+        recyclerView.smoothScrollToPosition(adapter.getItemCount());
+    }
+
 
     private void sendMenssage() {
         String message = editTextMessage.getText().toString();
         editTextMessage.setText("");
+
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append(Constants.SERVER_URL);
+        stringBuilder.append(Constants.MENSAGEM_PATH);
+
+        JSONObject jsonObject = new JSONObject();
+        try {
+            jsonObject.put("origem_id", userId);
+            jsonObject.put("destino_id", contactId);
+            jsonObject.put("assunto", "");
+            jsonObject.put("corpo", message);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        JsonObjectRequest request = new JsonObjectRequest
+                (Request.Method.POST, stringBuilder.toString(), jsonObject, new Response.Listener<JSONObject>() {
+                    @Override
+                    public void onResponse(JSONObject json) {
+                        Message message = new Gson().fromJson(json.toString(), Message.class);
+                        saveMessage(message);
+                    }
+                }, new Response.ErrorListener() {
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        onBackPressed();
+                    }
+                });
+
+        requestQueue.add(request);
     }
 
     private void fetchUserSentMessages() {
@@ -210,6 +251,23 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
         }
 
         saveMessages(messageList);
+    }
+
+    private void saveMessage(final Message message) {
+        realm.executeTransactionAsync(new Realm.Transaction() {
+            @Override
+            public void execute(Realm bgRealm) {
+                bgRealm.copyToRealmOrUpdate(message);
+            }
+        }, new Realm.Transaction.OnSuccess() {
+            @Override
+            public void onSuccess() {
+            }
+        }, new Realm.Transaction.OnError() {
+            @Override
+            public void onError(Throwable error) {
+            }
+        });
     }
 
     private void saveMessages(final List<Message> messageList) {
