@@ -30,10 +30,15 @@ import io.realm.Realm;
 import io.realm.RealmQuery;
 import io.realm.RealmResults;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ContactAdapter.OnContactClickListener {
 
     private RecyclerView recyclerView;
     private ContactAdapter contactAdapter;
+
+    @Override
+    public void onContactClickListener(int position) {
+
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
         fetchUsers();
         startMessagesService();
     }
+
 
     private void fetchUsers() {
         JsonObjectRequest request = new JsonObjectRequest
@@ -130,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
         RealmQuery<Contact> query = realm.where(Contact.class);
         RealmResults<Contact> result = query.findAll();
 
-        contactAdapter = new ContactAdapter(result.subList(0, result.size()));
+        contactAdapter = new ContactAdapter(result.subList(0, result.size()), this);
         recyclerView.setAdapter(contactAdapter);
     }
 
@@ -144,4 +150,6 @@ public class MainActivity extends AppCompatActivity {
         Intent i = new Intent(this, FetchMessagesService.class);
         startService(i);
     }
+
+
 }
