@@ -70,6 +70,10 @@ public class FetchMessagesService extends Service {
                         e.printStackTrace();
                     }
                 }
+
+                if ((tarefa != null) && (tarefa.getStatus() == AsyncTask.Status.PENDING)) {
+                    tarefa.cancel(false);
+                }
             }
         }.start();
 
