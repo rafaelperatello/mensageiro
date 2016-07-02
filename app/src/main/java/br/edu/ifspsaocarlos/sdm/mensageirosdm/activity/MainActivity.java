@@ -30,10 +30,15 @@ import io.realm.Realm;
 import io.realm.RealmQuery;
 import io.realm.RealmResults;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ContactAdapter.OnContactClickListener {
 
     private RecyclerView recyclerView;
     private ContactAdapter contactAdapter;
+
+    @Override
+    public void onContactClickListener(int position) {
+        startMessageActivity(contactAdapter.getItem(position).getId());
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,10 +47,6 @@ public class MainActivity extends AppCompatActivity {
 
         LinearLayoutManager mLayoutManager = new LinearLayoutManager(this);
         recyclerView = (RecyclerView) findViewById(R.id.recycler);
-        /**
-         * O erro: No adapter attached; skipping layout. Acontece pois não esta setando o adapter
-         * antes do layoutmanager.
-         */
         recyclerView.setLayoutManager(mLayoutManager);
         recyclerView.setHasFixedSize(false);
 
@@ -96,19 +97,10 @@ public class MainActivity extends AppCompatActivity {
     private void saveContacts(final List<Contact> contactList) {
         if (contactList != null) {
             Realm realm = Realm.getDefaultInstance();
-            //        realm.executeTransaction(new Realm.Transaction() {
-            //            @Override
-            //            public void execute(Realm realm) {
-            //                realm.copyToRealmOrUpdate(contactList);
-            //            }
-            //        });
-            //        updateAdapter();
-
             realm.executeTransactionAsync(new Realm.Transaction() {
                 @Override
                 public void execute(Realm bgRealm) {
                     bgRealm.copyToRealmOrUpdate(contactList);
-//                    bgRealm.commitTransaction();
                 }
             }, new Realm.Transaction.OnSuccess() {
                 @Override
@@ -130,12 +122,19 @@ public class MainActivity extends AppCompatActivity {
         RealmQuery<Contact> query = realm.where(Contact.class);
         RealmResults<Contact> result = query.findAll();
 
-        contactAdapter = new ContactAdapter(result.subList(0, result.size()));
+        contactAdapter = new ContactAdapter(result.subList(0, result.size()), this);
         recyclerView.setAdapter(contactAdapter);
+    }
+
+    private void startMessageActivity(String recipientId) {
+        Intent intent = new Intent(this, MessageActivity.class);
+        intent.putExtra(Constants.SENDER_USER_KEY, recipientId);
+        startActivity(intent);
     }
 
     private void startMessagesService() {
         Intent i = new Intent(this, FetchMessagesService.class);
         startService(i);
     }
+
 }

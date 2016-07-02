@@ -15,9 +15,11 @@ import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Contact;
 
 public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ViewHolder> {
     private List<Contact> contactList;
+    private ContactAdapter.OnContactClickListener listener;
 
-    public ContactAdapter(List<Contact> contactList) {
+    public ContactAdapter(List<Contact> contactList, ContactAdapter.OnContactClickListener listener) {
         this.contactList = contactList;
+        this.listener = listener;
     }
 
     @Override
@@ -33,6 +35,7 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ViewHold
 
         holder.mTextViewName.setText(c.getNome_completo());
         holder.mTextViewNickname.setText(c.getApelido());
+        holder.listener = listener;
     }
 
     @Override
@@ -40,10 +43,14 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ViewHold
         return contactList.size();
     }
 
+    public Contact getItem(int position) {
+        return contactList.get(position);
+    }
+
     public static class ViewHolder extends RecyclerView.ViewHolder {
         public TextView mTextViewName;
         public TextView mTextViewNickname;
-
+        public OnContactClickListener listener;
 
         public ViewHolder(View v) {
             super(v);
@@ -54,8 +61,15 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ViewHold
                 @Override
                 public void onClick(View view) {
                     Log.d("SDM", "onClick: " + getAdapterPosition());
+
+                    if (listener != null)
+                        listener.onContactClickListener(getAdapterPosition());
                 }
             });
         }
+    }
+
+    public interface OnContactClickListener {
+        void onContactClickListener(int position);
     }
 }

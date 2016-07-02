@@ -6,4 +6,6 @@ public class Constants {
     public static final String MENSAGEM_PATH = "/mensagem";
     public static final String PREFERENCES_KEY = "PREFERENCES";
     public static final String USER_KEY = "USER";
+
+    public static final String SENDER_USER_KEY = "DESTINY_KEY";
 }
