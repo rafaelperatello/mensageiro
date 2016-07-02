@@ -1,4 +1,4 @@
-package br.edu.ifspsaocarlos.sdm.mensageirosdm.model;
+package br.edu.ifspsaocarlos.sdm.mensageirosdm.application;
 
 import android.app.Application;
 
@@ -12,6 +12,7 @@ public class MyApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
+
         RealmConfiguration realmConfiguration = new RealmConfiguration.Builder(this).build();
         Realm.setDefaultConfiguration(realmConfiguration);
     }
