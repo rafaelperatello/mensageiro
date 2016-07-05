@@ -40,14 +40,13 @@ public class UserActivity extends AppCompatActivity {
         buttonSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                checkUserInfo();
+
+                // todo remove after tests
+                saveUserOnPreferences("1");//315
+
+//                checkUserInfo();
             }
         });
-
-        // TODO: 29/06/2016 uncomment
-//        checkUser();
-
-        saveUserOnPreferences("1");//315
     }
 
     private void checkUser() {
