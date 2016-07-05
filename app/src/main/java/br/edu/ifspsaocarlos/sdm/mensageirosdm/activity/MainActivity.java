@@ -1,11 +1,15 @@
 package br.edu.ifspsaocarlos.sdm.mensageirosdm.activity;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
+import android.widget.TextView;
 
 import com.android.volley.Request;
 import com.android.volley.Response;
@@ -24,6 +28,7 @@ import br.edu.ifspsaocarlos.sdm.mensageirosdm.adapter.ContactAdapter;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Contact;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.network.VolleyHelper;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.service.FetchMessagesService;
+import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Connection;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Constants;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Helpers;
 import io.realm.Realm;
@@ -34,6 +39,7 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
 
     private RecyclerView recyclerView;
     private ContactAdapter contactAdapter;
+    private boolean stopThread;
 
     @Override
     public void onContactClickListener(int position) {
@@ -43,6 +49,50 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        Log.d("SDM", "onCreate:");
+
+        TextView tvNovoContato = new TextView(this);
+        tvNovoContato.setText("Sem conexão com a internet");
+        setContentView(tvNovoContato);
+    }
+
+    @Override
+    public void onResume(){
+        super.onResume();
+        final Handler handler = new Handler();
+
+        stopThread = false;
+        new Thread() {
+            public void run() {
+                try {
+                    boolean ok = false;
+                    while ((!ok) && (!stopThread)) {
+                        Log.d("SDM", "trying connection:");
+                        ok = Connection.connectionVerify(getBaseContext());
+                        if (ok) {
+                            handler.post(new Runnable() {
+                                public void run() {
+                                    loadUsers();
+                                }
+                            });
+                        }
+                        Thread.sleep(5000);
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }.start();
+    }
+
+    @Override
+    public void onPause(){
+        super.onPause();
+        Log.d("SDM", "onPause:");
+        stopThread = true;
+    }
+
+    private void loadUsers() {
         setContentView(R.layout.activity_main);
 
         LinearLayoutManager mLayoutManager = new LinearLayoutManager(this);
