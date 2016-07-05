@@ -26,7 +26,7 @@
             android:layout_toStartOf="@+id/fab"
             android:hint="Mensagem"
             android:inputType="textMultiLine"
-            android:maxLength="150"
+            android:maxLength="38100"
             android:maxLines="4"
             android:paddingBottom="8dp"
             android:paddingTop="8dp" />

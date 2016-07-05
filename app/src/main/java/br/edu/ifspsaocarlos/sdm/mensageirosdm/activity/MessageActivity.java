@@ -10,6 +10,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -32,6 +33,8 @@ import br.edu.ifspsaocarlos.sdm.mensageirosdm.R;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.adapter.MessageAdapter;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Contact;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Message;
+import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Subject;
+import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Connection;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Constants;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Helpers;
 import io.realm.Realm;
@@ -173,40 +176,61 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
         recyclerView.smoothScrollToPosition(adapter.getItemCount());
     }
 
+    private boolean sendMessageIsAble(String message)
+    {
+        if (Connection.connectionVerify(this)) {
+            if (message.length() > 0) {
+                return true;
+            }
+        }
+        else
+        {
+            Toast.makeText(this, "No momento não há conexão.", Toast.LENGTH_SHORT).show();
+        }
+        return false;
+    }
 
     private void sendMenssage() {
         String message = editTextMessage.getText().toString();
-        editTextMessage.setText("");
 
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(Constants.SERVER_URL);
-        stringBuilder.append(Constants.MENSAGEM_PATH);
+        if (sendMessageIsAble(message))
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append(Constants.SERVER_URL);
+            stringBuilder.append(Constants.MENSAGEM_PATH);
 
-        JSONObject jsonObject = new JSONObject();
-        try {
-            jsonObject.put("origem_id", userId);
-            jsonObject.put("destino_id", contactId);
-            jsonObject.put("assunto", "");
-            jsonObject.put("corpo", message);
-        } catch (JSONException e) {
-            e.printStackTrace();
+            editTextMessage.setText("");
+
+            Subject subject = new Subject(message);
+
+            while (subject.isReady()) {
+                JSONObject jsonObject = new JSONObject();
+                try {
+                    jsonObject.put("origem_id", userId);
+                    jsonObject.put("destino_id", contactId);
+                    jsonObject.put("assunto", subject.finalSubject());
+                    jsonObject.put("corpo", subject.mensagemToSend());
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+                JsonObjectRequest request = new JsonObjectRequest
+                        (Request.Method.POST, stringBuilder.toString(), jsonObject, new Response.Listener<JSONObject>() {
+                            @Override
+                            public void onResponse(JSONObject json) {
+                                Message message = new Gson().fromJson(json.toString(), Message.class);
+                                saveMessage(message);
+                            }
+                        }, new Response.ErrorListener() {
+                            @Override
+                            public void onErrorResponse(VolleyError error) {
+                                onBackPressed();
+                            }
+                        });
+
+                requestQueue.add(request);
+            }
         }
-
-        JsonObjectRequest request = new JsonObjectRequest
-                (Request.Method.POST, stringBuilder.toString(), jsonObject, new Response.Listener<JSONObject>() {
-                    @Override
-                    public void onResponse(JSONObject json) {
-                        Message message = new Gson().fromJson(json.toString(), Message.class);
-                        saveMessage(message);
-                    }
-                }, new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        onBackPressed();
-                    }
-                });
-
-        requestQueue.add(request);
     }
 
     private void fetchUserSentMessages() {
@@ -292,4 +316,6 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
     private void saveMessagesSynchronizedFlag() {
         Helpers.saveCurrentUserSentMessagesToContact(this, contactId);
     }
+
+
 }
