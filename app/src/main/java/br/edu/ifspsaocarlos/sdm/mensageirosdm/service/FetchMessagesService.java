@@ -91,44 +91,45 @@ public class FetchMessagesService extends Service {
 
         @Override
         protected Void doInBackground(Void... params) {
-            Realm realm = Realm.getDefaultInstance();
+            Log.d("SDM", "MyAsyncTask doInBackground ");
 
+            Realm realm = Realm.getDefaultInstance();
             RealmQuery<Contact> queryContacts = realm.where(Contact.class);
             RealmResults<Contact> resultContacts = queryContacts.findAll();
 
+            requestSize = resultContacts.size();
 
-            while (!isCancelled()) {
-                requestSize = resultContacts.size();
+            // loop de requisição de mensagens de cada contato
+            for (Contact contact : resultContacts.subList(0, resultContacts.size())) {
+                ContactMessage conMessage = realm.where(ContactMessage.class).equalTo("id", contact.getId()).findFirst();
 
-                // loop de requisição de mensagens de cada contato
-                for (Contact contact : resultContacts.subList(0, resultContacts.size())) {
-                    ContactMessage conMessage = realm.where(ContactMessage.class).equalTo("id", contact.getId()).findFirst();
-
-                    if (conMessage != null) {
-                        fetchMessages(conMessage.getLastMessageId(), conMessage.getId());
-                    } else {
-                        fetchMessages("0", contact.getId());
-                    }
+                if (conMessage != null) {
+                    fetchMessages(conMessage.getLastMessageId(), conMessage.getId());
+                } else {
+                    fetchMessages("0", contact.getId());
                 }
+            }
 
-                // loop para esperar todas as requests finalizarem antes de começar o próximo burst
-                while (!isCancelled() && (requestSize != 0)) {
-                    try {
-                        Log.d("SDM", "doInBackground hold loop - request size :" + requestSize);
-                        Thread.sleep(1000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
+            realm.close();
 
-                // agurado de 30s antes de recomeçar
+            // loop para esperar todas as requests finalizarem antes de começar o próximo burst
+            while (!isCancelled() && (requestSize != 0)) {
                 try {
-                    Log.d("SDM", "doInBackground sleep");
-                    Thread.sleep(30000);
+                    Log.d("SDM", "doInBackground hold loop - request size :" + requestSize);
+                    Thread.sleep(1000);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
+
+            // agurado de 30s antes de recomeçar
+            try {
+                Log.d("SDM", "doInBackground sleep");
+                Thread.sleep(30000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
             requestQueue.cancelAll(REQUEST_TAG);
 
             return null;
@@ -136,7 +137,10 @@ public class FetchMessagesService extends Service {
 
         @Override
         protected void onPostExecute(Void s) {
-            super.onPostExecute(s);
+            Log.d("SDM", "MyAsyncTask onPostExecute ");
+
+            task = new MyAsyncTask();
+            task.execute();
         }
 
         private void fetchMessages(String idMessage, String idContact) {
