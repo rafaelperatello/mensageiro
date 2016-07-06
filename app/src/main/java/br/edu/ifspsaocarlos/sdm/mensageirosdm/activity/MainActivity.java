@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.TextView;
 
@@ -100,8 +101,19 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
         recyclerView.setLayoutManager(mLayoutManager);
         recyclerView.setHasFixedSize(false);
 
+        checkUser();
         fetchUsers();
         startMessagesService();
+    }
+
+    private void checkUser() {
+        String userId = Helpers.getUserId(this);
+
+        if (TextUtils.isEmpty(userId)) {
+            Intent intent = new Intent(this, UserActivity.class);
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(intent);
+        }
     }
 
     private void fetchUsers() {

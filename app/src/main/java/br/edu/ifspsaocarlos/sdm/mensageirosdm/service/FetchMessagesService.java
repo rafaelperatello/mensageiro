@@ -1,12 +1,16 @@
 package br.edu.ifspsaocarlos.sdm.mensageirosdm.service;
 
 
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
 import android.util.Log;
 
 import com.android.volley.Request;
@@ -23,6 +27,8 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
+import br.edu.ifspsaocarlos.sdm.mensageirosdm.R;
+import br.edu.ifspsaocarlos.sdm.mensageirosdm.activity.MessageActivity;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Contact;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.ContactMessage;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Message;
@@ -33,51 +39,23 @@ import io.realm.RealmQuery;
 import io.realm.RealmResults;
 
 public class FetchMessagesService extends Service {
-    private boolean isServiceDestroyed;
+    private MyAsyncTask task;
 
     @Override
     public void onCreate() {
         super.onCreate();
         Log.d("SDM", "onCreate service ");
-        isServiceDestroyed = false;
+
+        task = new MyAsyncTask();
+        task.execute();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
+        Log.d("SDM", "onStartCommand service ");
 
-        new Thread() {
-            public void run() {
-                Log.d("SDM", "onStartCommand");
-                MyAsyncTask tarefa = new MyAsyncTask(getApplication());
-
-                while (!isServiceDestroyed) {
-                    try {
-                        switch (tarefa.getStatus()) {
-                            case PENDING:
-                                tarefa.execute();
-                                break;
-
-                            case FINISHED:
-                                tarefa = new MyAsyncTask(getApplication());
-                                break;
-
-                            default:
-                                Thread.sleep(100);
-                        }
-                        Thread.sleep(2000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-                if (tarefa != null) {
-                    tarefa.cancel(false);
-                }
-            }
-        }.start();
-
-        return Service.START_STICKY;
+        return Service.START_NOT_STICKY;
     }
 
     @Nullable
@@ -88,68 +66,95 @@ public class FetchMessagesService extends Service {
 
     @Override
     public void onDestroy() {
-        super.onDestroy();
         Log.d("SDM", "onDestroy service ");
 
-        isServiceDestroyed = true;
-        stopSelf();
+        task.cancel(true);
+        super.onDestroy();
     }
 
-
     class MyAsyncTask extends AsyncTask<Void, Void, Void> {
+        private final String REQUEST_TAG = "REQUEST_TAG";
+        private String userId;
+
         private Context context;
         private RequestQueue requestQueue;
-        private String userId;
         private int requestSize;
 
-        public MyAsyncTask(Context context) {
+        public MyAsyncTask() {
             super();
-            this.context = context;
-        }
+            this.context = getApplication();
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-//            Log.d("SDM", "onPreExecute");
-
-            requestQueue = Volley.newRequestQueue(context);
             userId = Helpers.getUserId(context);
+            requestQueue = Volley.newRequestQueue(context);
+            requestSize = 0;
         }
 
         @Override
         protected Void doInBackground(Void... params) {
-//            Log.d("SDM", "doInBackground");
-            Realm realm = Realm.getDefaultInstance();
+            Log.d("SDM", "MyAsyncTask doInBackground ");
 
+            Realm realm = Realm.getDefaultInstance();
             RealmQuery<Contact> queryContacts = realm.where(Contact.class);
             RealmResults<Contact> resultContacts = queryContacts.findAll();
+
             requestSize = resultContacts.size();
 
+            // loop de requisição de mensagens de cada contato
             for (Contact contact : resultContacts.subList(0, resultContacts.size())) {
-                ContactMessage conMenssage = realm.where(ContactMessage.class).equalTo("id", contact.getId()).findFirst();
+                ContactMessage conMessage = realm.where(ContactMessage.class).equalTo("id", contact.getId()).findFirst();
 
-                if (conMenssage != null) {
-//                    Log.d("SDM", "FOR: " + conMenssage.getLastMessageId());
-                    fetchMessages(conMenssage.getLastMessageId(), conMenssage.getId());
+                if (conMessage != null) {
+                    fetchMessages(conMessage.getLastMessageId(), conMessage.getId());
                 } else {
-//                    Log.d("SDM", "FOR: " + "0");
                     fetchMessages("0", contact.getId());
                 }
             }
 
+            realm.close();
+
+            // loop para esperar todas as requests finalizarem antes de começar o próximo burst
+            while (!isCancelled() && (requestSize != 0)) {
+                try {
+                    Log.d("SDM", "doInBackground hold loop - request size :" + requestSize);
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            // agurado de 30s antes de recomeçar
+            try {
+                Log.d("SDM", "doInBackground sleep");
+                Thread.sleep(30000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            requestQueue.cancelAll(REQUEST_TAG);
+
             return null;
         }
 
-        private void fetchMessages(String idMenssage, String idContact) {
+        @Override
+        protected void onPostExecute(Void s) {
+            Log.d("SDM", "MyAsyncTask onPostExecute ");
+
+            task = new MyAsyncTask();
+            task.execute();
+        }
+
+        private void fetchMessages(String idMessage, String idContact) {
+            // incrementa o id da última mensagem para que exiba somente mensagens novas
+            Integer idMessageRequest = Integer.parseInt(idMessage);
+            idMessageRequest++;
+
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.append(Constants.SERVER_URL);
             stringBuilder.append(Constants.MENSAGEM_PATH);
-            stringBuilder.append("/" + idMenssage + "/");
+            stringBuilder.append("/" + idMessageRequest + "/");
             stringBuilder.append(idContact);
             stringBuilder.append("/");
             stringBuilder.append(userId);
-
-//            Log.d("SDM", "request: " + stringBuilder.toString());
 
             JsonObjectRequest request = new JsonObjectRequest
                     (Request.Method.GET, stringBuilder.toString(), null, new Response.Listener<JSONObject>() {
@@ -157,7 +162,6 @@ public class FetchMessagesService extends Service {
                         @Override
                         public void onResponse(JSONObject json) {
                             requestSize--;
-//                            Log.d("SDM", "onResponse service " + requestSize);
                             parseMessageList(json);
                         }
                     }, new Response.ErrorListener() {
@@ -165,10 +169,10 @@ public class FetchMessagesService extends Service {
                         @Override
                         public void onErrorResponse(VolleyError error) {
                             requestSize--;
-//                            Log.d("SDM", "onErrorResponse service " + requestSize);
                         }
                     });
 
+            request.setTag(REQUEST_TAG);
             requestQueue.add(request);
         }
 
@@ -182,7 +186,6 @@ public class FetchMessagesService extends Service {
                 for (int i = 0; i < jsonArray.length(); i++) {
                     Message message = gson.fromJson(jsonArray.getJSONObject(i).toString(), Message.class);
                     messageList.add(message);
-//                    Log.d("SDM", "Message: " + message.getId() + " de: " + message.getOrigem_id());
                 }
 
             } catch (Exception e) {
@@ -193,66 +196,82 @@ public class FetchMessagesService extends Service {
         }
 
         private void saveMessages(final List<Message> messageList) {
-//            Log.d("SDM", "saveMessages");
             if (messageList != null) {
                 if (messageList.size() > 0) {
-                    Realm realm = Realm.getDefaultInstance();
 
+                    // Usado para atualizar indice
+                    final Message mensagem = messageList.get(messageList.size() - 1);
+
+                    Realm realm = Realm.getDefaultInstance();
                     realm.executeTransactionAsync(new Realm.Transaction() {
                         @Override
                         public void execute(Realm bgRealm) {
-//                            Log.d("SDM", "execute message");
                             bgRealm.copyToRealmOrUpdate(messageList);
                         }
                     }, new Realm.Transaction.OnSuccess() {
                         @Override
                         public void onSuccess() {
-//                            Log.d("SDM", "onSuccess message: ");
+                            updateMessagesIndex(mensagem);
+                            showNotification(messageList);
                         }
                     }, new Realm.Transaction.OnError() {
                         @Override
                         public void onError(Throwable error) {
-//                            Log.d("SDM", "onError message: " + error.toString());
-                        }
-                    });
-
-
-                    // Atualiza indice da ultima mensagem
-                    Message mensagem = messageList.get(messageList.size() - 1);
-
-                    final ContactMessage conMen = new ContactMessage();
-                    conMen.setId(mensagem.getOrigem_id());
-                    conMen.setLastMessageId(mensagem.getId());
-
-//                    Log.d("SDM", "===================");
-//                    Log.d("SDM", conMen.getId() + " - " + conMen.getLastMessageId());
-//                    Log.d("SDM", "===================");
-
-                    realm.executeTransactionAsync(new Realm.Transaction() {
-                        @Override
-                        public void execute(Realm bgRealm) {
-//                            Log.d("SDM", "execute relação");
-                            bgRealm.copyToRealmOrUpdate(conMen);
-                        }
-                    }, new Realm.Transaction.OnSuccess() {
-                        @Override
-                        public void onSuccess() {
-//                            Log.d("SDM", "onSuccess relação: ");
-                        }
-                    }, new Realm.Transaction.OnError() {
-                        @Override
-                        public void onError(Throwable error) {
-//                            Log.d("SDM", "onError relação: " + error.toString());
                         }
                     });
                 }
             }
         }
 
-        @Override
-        protected void onPostExecute(Void s) {
-            super.onPostExecute(s);
-//            Log.d("SDM", "onPostExecute");
+        private void updateMessagesIndex(Message mensagem) {
+            final ContactMessage conMen = new ContactMessage();
+            conMen.setId(mensagem.getOrigem_id());
+            conMen.setLastMessageId(mensagem.getId());
+
+            Realm realm = Realm.getDefaultInstance();
+            realm.executeTransactionAsync(new Realm.Transaction() {
+                @Override
+                public void execute(Realm bgRealm) {
+                    bgRealm.copyToRealmOrUpdate(conMen);
+                }
+            }, new Realm.Transaction.OnSuccess() {
+                @Override
+                public void onSuccess() {
+                }
+            }, new Realm.Transaction.OnError() {
+                @Override
+                public void onError(Throwable error) {
+                }
+            });
+        }
+
+        private void showNotification(List<Message> messageList) {
+            Integer id = Integer.parseInt(messageList.get(0).getOrigem_id());
+            NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            mNotificationManager.cancel(id);
+
+            Realm realm = Realm.getDefaultInstance();
+            Contact contato = realm.where(Contact.class).equalTo("id", messageList.get(0).getOrigem_id()).findFirst();
+
+            NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(getApplicationContext())
+                    .setSmallIcon(R.drawable.ic_send_white_24dp)
+                    .setWhen(System.currentTimeMillis())
+                    .setAutoCancel(true)
+                    .setContentTitle("Nova mensagem")
+                    .setContentText(contato.getNome_completo());
+
+            Intent resultIntent = new Intent(getApplicationContext(), MessageActivity.class);
+            resultIntent.putExtra(Constants.SENDER_USER_KEY, messageList.get(0).getOrigem_id());
+
+            TaskStackBuilder stackBuilder = TaskStackBuilder.create(getApplicationContext());
+            stackBuilder.addParentStack(MessageActivity.class);
+            stackBuilder.addNextIntent(resultIntent);
+
+            PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+            mBuilder.setContentIntent(resultPendingIntent);
+
+
+            mNotificationManager.notify(id, mBuilder.build());
         }
     }
 }
