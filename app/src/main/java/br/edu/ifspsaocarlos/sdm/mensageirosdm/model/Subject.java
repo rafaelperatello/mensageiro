@@ -54,8 +54,6 @@ public class Subject{
         }
 
         return hex.toString();
-        // do modo baixo havia problema. Valores do extended ascii não estavam sendo reconhecidos.
-//        return new String(cabecalho);
     }
 
     public String mensagemToSend(){
