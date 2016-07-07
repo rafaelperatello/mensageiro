@@ -74,8 +74,8 @@ public class FetchMessagesService extends Service {
     }
 
     class MyAsyncTask extends AsyncTask<Void, Void, Void> {
-        private final String REQUEST_TAG = "REQUEST_TAG";
         private String userId;
+        private boolean isFirstUse;
 
         private Context context;
         private RequestQueue requestQueue;
@@ -86,6 +86,8 @@ public class FetchMessagesService extends Service {
             this.context = getApplication();
 
             userId = Helpers.getUserId(context);
+            isFirstUse = Helpers.isFirstUse(context);
+
             requestQueue = Volley.newRequestQueue(context);
             requestSize = 0;
 
@@ -138,7 +140,8 @@ public class FetchMessagesService extends Service {
                 e.printStackTrace();
             }
 
-            requestQueue.cancelAll(REQUEST_TAG);
+            requestQueue.cancelAll(Constants.REQUEST_TAG);
+            Helpers.updateFirstUse(context);
 
             return null;
         }
@@ -184,7 +187,7 @@ public class FetchMessagesService extends Service {
                         }
                     });
 
-            request.setTag(REQUEST_TAG);
+            request.setTag(Constants.REQUEST_TAG);
             requestQueue.add(request);
         }
 
@@ -292,33 +295,35 @@ public class FetchMessagesService extends Service {
         }
 
         private void showNotification(List<Message> messageList) {
-            Integer id = Integer.parseInt(messageList.get(0).getOrigem_id());
-            NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-            mNotificationManager.cancel(id);
+            if (!isFirstUse) {
+                Integer id = Integer.parseInt(messageList.get(0).getOrigem_id());
+                NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                mNotificationManager.cancel(id);
 
-            Realm realm = Realm.getDefaultInstance();
-            Contact contact = realm.where(Contact.class).equalTo("id", messageList.get(0).getOrigem_id()).findFirst();
+                Realm realm = Realm.getDefaultInstance();
+                Contact contact = realm.where(Contact.class).equalTo("id", messageList.get(0).getOrigem_id()).findFirst();
 
-            if (contact != null) {
-                NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(getApplicationContext())
-                        .setSmallIcon(R.drawable.ic_send_white_24dp)
-                        .setWhen(System.currentTimeMillis())
-                        .setAutoCancel(true)
-                        .setContentTitle("Nova mensagem")
-                        .setContentText(contact.getNome_completo());
+                if (contact != null) {
+                    NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(getApplicationContext())
+                            .setSmallIcon(R.drawable.ic_send_white_24dp)
+                            .setWhen(System.currentTimeMillis())
+                            .setAutoCancel(true)
+                            .setContentTitle("Nova mensagem")
+                            .setContentText(contact.getNome_completo());
 
-                Intent resultIntent = new Intent(getApplicationContext(), MessageActivity.class);
-                resultIntent.putExtra(Constants.SENDER_USER_KEY, messageList.get(0).getOrigem_id());
+                    Intent resultIntent = new Intent(getApplicationContext(), MessageActivity.class);
+                    resultIntent.putExtra(Constants.SENDER_USER_KEY, messageList.get(0).getOrigem_id());
 
-                TaskStackBuilder stackBuilder = TaskStackBuilder.create(getApplicationContext());
-                stackBuilder.addParentStack(MessageActivity.class);
-                stackBuilder.addNextIntent(resultIntent);
+                    TaskStackBuilder stackBuilder = TaskStackBuilder.create(getApplicationContext());
+                    stackBuilder.addParentStack(MessageActivity.class);
+                    stackBuilder.addNextIntent(resultIntent);
 
-                PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
-                mBuilder.setContentIntent(resultPendingIntent);
+                    PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+                    mBuilder.setContentIntent(resultPendingIntent);
 
 
-                mNotificationManager.notify(id, mBuilder.build());
+                    mNotificationManager.notify(id, mBuilder.build());
+                }
             }
         }
     }
