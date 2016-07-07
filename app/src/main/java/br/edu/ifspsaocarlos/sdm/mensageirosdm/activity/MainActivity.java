@@ -1,8 +1,6 @@
 package br.edu.ifspsaocarlos.sdm.mensageirosdm.activity;
 
-import android.content.Context;
 import android.content.Intent;
-import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
@@ -61,7 +59,7 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
     }
 
     @Override
-    public void onResume(){
+    public void onResume() {
         super.onResume();
         final Handler handler = new Handler();
 
@@ -90,7 +88,7 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
     }
 
     @Override
-    public void onPause(){
+    public void onPause() {
         super.onPause();
         Log.d("SDM", "onPause:");
         stopThread = true;
@@ -128,33 +126,32 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
 
     private void fetchUsers() {
         JsonObjectRequest request = new JsonObjectRequest
-            (Request.Method.GET, Constants.SERVER_URL + Constants.CONTATO_PATH, null, new Response.Listener<JSONObject>() {
+                (Request.Method.GET, Constants.SERVER_URL + Constants.CONTATO_PATH, null, new Response.Listener<JSONObject>() {
 
-                @Override
-                public void onResponse(JSONObject json) {
-                    parseUserList(json);
-                }
-            }, new Response.ErrorListener() {
-
-                @Override
-                public void onErrorResponse(VolleyError error) {
-                    try{
-                        count++;
-                        if (count > 3) {
-                            Helpers.showDialog(MainActivity.this, R.string.dialog_content_error_fetching_user);
-                            Log.d("SDM", "Não houve resposta dos contatos");
-                            updateAdapter();
-                            Thread.sleep(500);
-                        }
-                        else{
-                            Thread.sleep(2000);
-                            fetchUsers();
-                        }
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
+                    @Override
+                    public void onResponse(JSONObject json) {
+                        parseUserList(json);
                     }
-                }
-            });
+                }, new Response.ErrorListener() {
+
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        try {
+                            count++;
+                            if (count > 3) {
+                                Helpers.showDialog(MainActivity.this, R.string.dialog_content_error_fetching_user);
+                                Log.d("SDM", "Não houve resposta dos contatos");
+                                updateAdapter();
+                                Thread.sleep(500);
+                            } else {
+                                Thread.sleep(2000);
+                                fetchUsers();
+                            }
+                        } catch (InterruptedException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
 
         VolleyHelper.getInstance(this).addToRequestQueue(request);
     }

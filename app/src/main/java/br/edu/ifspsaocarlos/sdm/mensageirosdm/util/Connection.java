@@ -1,6 +1,5 @@
 package br.edu.ifspsaocarlos.sdm.mensageirosdm.util;
 
-import android.app.Activity;
 import android.content.Context;
 import android.net.ConnectivityManager;
 

@@ -37,32 +37,3 @@ public class ContactMessage extends RealmObject {
         this.lastToContact = lastMessageId;
     }
 }
-
-
-
-//public class ContactMessage extends RealmObject {
-//
-//    @PrimaryKey
-//    private String id;
-//    private String lastMessageId;
-//
-//    public ContactMessage() {
-//
-//    }
-//
-//    public String getId() {
-//        return id;
-//    }
-//
-//    public void setId(String id) {
-//        this.id = id;
-//    }
-//
-//    public String getLastMessageId() {
-//        return lastMessageId;
-//    }
-//
-//    public void setLastMessageId(String lastMessageId) {
-//        this.lastMessageId = lastMessageId;
-//    }
-//}

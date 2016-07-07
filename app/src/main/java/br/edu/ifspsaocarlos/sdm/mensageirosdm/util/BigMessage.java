@@ -1,7 +1,5 @@
 package br.edu.ifspsaocarlos.sdm.mensageirosdm.util;
 
-import android.util.Log;
-
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Message;
 
 /**
@@ -16,7 +14,7 @@ public class BigMessage {
     public final static int BIG_MESSAGE_CONCATENATED = 2;
     public final static int BIG_MESSAGE_ENDED = 3;
 
-    public static Message getBigMessage(){
+    public static Message getBigMessage() {
         return bigMessage;
     }
 

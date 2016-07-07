@@ -57,7 +57,7 @@ public class Message extends RealmObject {
         this.corpo = corpo;
     }
 
-    private char[] convertHexToChar(){
+    private char[] convertHexToChar() {
         char[] bytes = new char[Constants.MAX_CABECALHO];
         int count = 0;
 
@@ -71,33 +71,30 @@ public class Message extends RealmObject {
         return bytes;
     }
 
-    public boolean isBigMessage(){
+    public boolean isBigMessage() {
         char[] bytes = convertHexToChar();
-        if ((bytes[0] == 0x01) && (bytes[6] == 0x01))
-        {
+        if ((bytes[0] == 0x01) && (bytes[6] == 0x01)) {
             char cks = (char) (bytes[1] + bytes[2] + bytes[3] + bytes[4]);
-            if (cks == bytes[5])
-            {
+            if (cks == bytes[5]) {
                 return true;
             }
         }
         return false;
     }
 
-    public char sequencePackage(char sequence){
+    public char sequencePackage(char sequence) {
         char[] bytes = convertHexToChar();
         if (sequence == bytes[2]) {
             if (bytes[2] == bytes[3]) {
                 return 0x00;
             }
-        }
-        else{
+        } else {
             return 0x00;
         }
         return bytes[2];
     }
 
-    public void concatenateMessage(String msg){
+    public void concatenateMessage(String msg) {
         this.corpo += msg;
     }
 }
