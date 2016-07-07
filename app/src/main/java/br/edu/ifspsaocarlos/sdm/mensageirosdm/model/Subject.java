@@ -1,14 +1,15 @@
 package br.edu.ifspsaocarlos.sdm.mensageirosdm.model;
 
+import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Constants;
+
 /**
  * Created by rapha on 7/4/2016.
  */
 public class Subject{
-    //short pq esse não tem sinal (0..255) já o byte tem (-127..128)
-    private short packageActual;
-    private short packageCount;
-    private short type;
-    private short messageSize;
+    private char packageActual;
+    private char packageCount;
+    private char type;
+    private char messageSize;
     private String message;
 
     public Subject (String message){
@@ -18,21 +19,21 @@ public class Subject{
         if (message.length() > 150)
         {
             //this.packageCount = (byte) ((message.length() % 150) + 1);
-            this.packageCount = (short) ((message.length() / 150) + 1);
-            this.messageSize = (short) 150;
+            this.packageCount = (char) ((message.length() / 150) + 1);
+            this.messageSize = (char) 150;
         }
         else
         {
-            this.messageSize = (short) message.length();
+            this.messageSize = (char) message.length();
         }
     }
 
-    private short checksumCalc(){
-        return (short)(packageActual + packageCount + type + messageSize);
+    private char checksumCalc(){
+        return (char)(packageActual + packageCount + type + messageSize);
     }
 
     public String finalSubject(){
-        short[] cabecalho = new short[7];
+        char[] cabecalho = new char[Constants.MAX_CABECALHO];
         cabecalho[0] = 0x01; //head
         cabecalho[1] = messageSize; //length high
         cabecalho[2] = packageActual; //package
@@ -41,7 +42,19 @@ public class Subject{
         cabecalho[5] = checksumCalc(); //cks
         cabecalho[6] = 0x01; //tail
 
-        return cabecalho.toString();
+        StringBuffer hex = new StringBuffer();
+        for(int i = 0; i < cabecalho.length; i++){
+            String valor = Integer.toHexString((int)cabecalho[i]);
+            if (valor.length() == 1)
+            {
+                valor = "0" + valor;
+            }
+            hex.append(valor);
+        }
+
+        return hex.toString();
+        // do modo baixo havia problema. Valores do extended ascii não estavam sendo reconhecidos.
+//        return new String(cabecalho);
     }
 
     public String mensagemToSend(){

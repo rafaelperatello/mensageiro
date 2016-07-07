@@ -41,6 +41,7 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
     private RecyclerView recyclerView;
     private ContactAdapter contactAdapter;
     private boolean stopThread;
+    private static int count;
 
     @Override
     public void onContactClickListener(int position) {
@@ -51,6 +52,8 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d("SDM", "onCreate:");
+
+        count = 0;
 
         TextView tvNovoContato = new TextView(this);
         tvNovoContato.setText("Sem conexão com a internet");
@@ -101,36 +104,57 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
         recyclerView.setLayoutManager(mLayoutManager);
         recyclerView.setHasFixedSize(false);
 
-        checkUser();
-        fetchUsers();
-        startMessagesService();
+        /**
+         * Verifica se esta cadastrado para só depois startar o que tem que startar. Sem isso ele
+         * insere você na lista de usuários pois ele acaba percorrendo o fetUser duas vezes.
+         */
+        if (checkUser()) {
+            fetchUsers();
+            startMessagesService();
+        }
     }
 
-    private void checkUser() {
+    private boolean checkUser() {
         String userId = Helpers.getUserId(this);
 
         if (TextUtils.isEmpty(userId)) {
             Intent intent = new Intent(this, UserActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
+            return false;
         }
+        return true;
     }
 
     private void fetchUsers() {
         JsonObjectRequest request = new JsonObjectRequest
-                (Request.Method.GET, Constants.SERVER_URL + Constants.CONTATO_PATH, null, new Response.Listener<JSONObject>() {
+            (Request.Method.GET, Constants.SERVER_URL + Constants.CONTATO_PATH, null, new Response.Listener<JSONObject>() {
 
-                    @Override
-                    public void onResponse(JSONObject json) {
-                        parseUserList(json);
-                    }
-                }, new Response.ErrorListener() {
+                @Override
+                public void onResponse(JSONObject json) {
+                    parseUserList(json);
+                }
+            }, new Response.ErrorListener() {
 
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        Helpers.showDialog(MainActivity.this, R.string.dialog_content_error_fetching_user);
+                @Override
+                public void onErrorResponse(VolleyError error) {
+                    try{
+                        count++;
+                        if (count > 3) {
+                            Helpers.showDialog(MainActivity.this, R.string.dialog_content_error_fetching_user);
+                            Log.d("SDM", "Não houve resposta dos contatos");
+                            updateAdapter();
+                            Thread.sleep(500);
+                        }
+                        else{
+                            Thread.sleep(2000);
+                            fetchUsers();
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
                     }
-                });
+                }
+            });
 
         VolleyHelper.getInstance(this).addToRequestQueue(request);
     }

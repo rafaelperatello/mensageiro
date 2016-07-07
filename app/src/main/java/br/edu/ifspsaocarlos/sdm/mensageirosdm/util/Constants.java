@@ -8,4 +8,6 @@ public class Constants {
     public static final String USER_KEY = "USER";
 
     public static final String SENDER_USER_KEY = "DESTINY_KEY";
+
+    public static final int MAX_CABECALHO = 7;
 }

@@ -7,10 +7,10 @@ public class ContactMessage extends RealmObject {
 
     @PrimaryKey
     private String id;
-    private String lastMessageId;
+    private String lastFromContact;
+    private String lastToContact;
 
     public ContactMessage() {
-
     }
 
     public String getId() {
@@ -21,11 +21,48 @@ public class ContactMessage extends RealmObject {
         this.id = id;
     }
 
-    public String getLastMessageId() {
-        return lastMessageId;
+    public String getLastFromContact() {
+        return lastFromContact;
     }
 
-    public void setLastMessageId(String lastMessageId) {
-        this.lastMessageId = lastMessageId;
+    public void setLastFromContact(String lastMessageId) {
+        this.lastFromContact = lastMessageId;
+    }
+
+    public String getLastToContact() {
+        return lastToContact;
+    }
+
+    public void setLastToContact(String lastMessageId) {
+        this.lastToContact = lastMessageId;
     }
 }
+
+
+
+//public class ContactMessage extends RealmObject {
+//
+//    @PrimaryKey
+//    private String id;
+//    private String lastMessageId;
+//
+//    public ContactMessage() {
+//
+//    }
+//
+//    public String getId() {
+//        return id;
+//    }
+//
+//    public void setId(String id) {
+//        this.id = id;
+//    }
+//
+//    public String getLastMessageId() {
+//        return lastMessageId;
+//    }
+//
+//    public void setLastMessageId(String lastMessageId) {
+//        this.lastMessageId = lastMessageId;
+//    }
+//}

@@ -49,14 +49,6 @@ public class UserActivity extends AppCompatActivity {
         });
     }
 
-    private void checkUser() {
-        String userId = Helpers.getUserId(this);
-
-        if (!TextUtils.isEmpty(userId)) {
-            showHome();
-        }
-    }
-
     private void showHome() {
         Intent intent = new Intent(this, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
