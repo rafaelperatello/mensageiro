@@ -112,7 +112,7 @@ public class FetchMessagesService extends Service {
                         fetchMessages("0", contact.getId(), userId);
                         fetchMessages("0", userId, contact.getId());
                     }
-                    Thread.sleep(50);
+                    Thread.sleep(10);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -234,7 +234,9 @@ public class FetchMessagesService extends Service {
                         @Override
                         public void onSuccess() {
                             updateMessagesIndex(mensagem);
-                            showNotification(messageList);
+
+                            if (!userId.equals(messageList.get(0).getOrigem_id()))
+                                showNotification(messageList);
                         }
                     }, new Realm.Transaction.OnError() {
                         @Override
@@ -295,27 +297,29 @@ public class FetchMessagesService extends Service {
             mNotificationManager.cancel(id);
 
             Realm realm = Realm.getDefaultInstance();
-            Contact contato = realm.where(Contact.class).equalTo("id", messageList.get(0).getOrigem_id()).findFirst();
+            Contact contact = realm.where(Contact.class).equalTo("id", messageList.get(0).getOrigem_id()).findFirst();
 
-            NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(getApplicationContext())
-                    .setSmallIcon(R.drawable.ic_send_white_24dp)
-                    .setWhen(System.currentTimeMillis())
-                    .setAutoCancel(true)
-                    .setContentTitle("Nova mensagem")
-                    .setContentText(contato.getNome_completo());
+            if (contact != null) {
+                NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(getApplicationContext())
+                        .setSmallIcon(R.drawable.ic_send_white_24dp)
+                        .setWhen(System.currentTimeMillis())
+                        .setAutoCancel(true)
+                        .setContentTitle("Nova mensagem")
+                        .setContentText(contact.getNome_completo());
 
-            Intent resultIntent = new Intent(getApplicationContext(), MessageActivity.class);
-            resultIntent.putExtra(Constants.SENDER_USER_KEY, messageList.get(0).getOrigem_id());
+                Intent resultIntent = new Intent(getApplicationContext(), MessageActivity.class);
+                resultIntent.putExtra(Constants.SENDER_USER_KEY, messageList.get(0).getOrigem_id());
 
-            TaskStackBuilder stackBuilder = TaskStackBuilder.create(getApplicationContext());
-            stackBuilder.addParentStack(MessageActivity.class);
-            stackBuilder.addNextIntent(resultIntent);
+                TaskStackBuilder stackBuilder = TaskStackBuilder.create(getApplicationContext());
+                stackBuilder.addParentStack(MessageActivity.class);
+                stackBuilder.addNextIntent(resultIntent);
 
-            PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
-            mBuilder.setContentIntent(resultPendingIntent);
+                PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+                mBuilder.setContentIntent(resultPendingIntent);
 
 
-            mNotificationManager.notify(id, mBuilder.build());
+                mNotificationManager.notify(id, mBuilder.build());
+            }
         }
     }
 }
