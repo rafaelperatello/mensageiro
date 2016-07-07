@@ -24,6 +24,7 @@ public class Subject{
         }
         else
         {
+            this.packageCount = 0x01;
             this.messageSize = (char) message.length();
         }
     }

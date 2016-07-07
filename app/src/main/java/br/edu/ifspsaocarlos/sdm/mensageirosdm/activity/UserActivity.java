@@ -42,9 +42,9 @@ public class UserActivity extends AppCompatActivity {
             public void onClick(View view) {
 
                 // todo remove after tests
-                saveUserOnPreferences("1");//315
+//                saveUserOnPreferences("1");//315
 
-//                checkUserInfo();
+                checkUserInfo();
             }
         });
     }
