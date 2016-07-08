@@ -57,15 +57,42 @@ public class Message extends RealmObject {
         this.corpo = corpo;
     }
 
+    private boolean validateChar(char letra)
+    {
+        if (((letra >= 0x30) && (letra <= 0x39)) || // é numero
+            ((letra >= 0x41) && (letra <= 0x46)) ||  // é maiusculo
+            ((letra >= 0x61) && (letra <= 0x66))) // é minúsculo
+        {
+            return true;
+        }
+        return false;
+    }
+
     private char[] convertHexToChar() {
         char[] bytes = new char[Constants.MAX_CABECALHO];
+        char[] auxChar;
         int count = 0;
+        boolean ok;
 
         if (this.assunto.length() >= (Constants.MAX_CABECALHO * 2)) {
             for (int i = 0; i < (Constants.MAX_CABECALHO * 2); i += 2) {
                 String str = this.assunto.substring(i, i + 2);
-                bytes[count] = (char) Integer.parseInt(str, 16);
-                count++;
+                auxChar = str.toCharArray();
+                ok = false;
+                if (auxChar.length == 2) {
+                    if (validateChar(auxChar[0])) {
+                        if (validateChar(auxChar[1])) {
+                            bytes[count] = (char) Integer.parseInt(str, 16);
+                            count++;
+                            ok = true;
+                        }
+                    }
+                }
+
+                if (!ok)
+                {
+                    break;
+                }
             }
         }
         return bytes;

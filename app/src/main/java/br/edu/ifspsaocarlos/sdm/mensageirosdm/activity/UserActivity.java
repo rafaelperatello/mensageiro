@@ -40,6 +40,7 @@ public class UserActivity extends AppCompatActivity {
         buttonSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                saveUserOnPreferences("405"); //400 eu!
                 checkUserInfo();
             }
         });
