@@ -30,10 +30,10 @@ import java.util.List;
 
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.R;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.adapter.MessageAdapter;
-import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.BigMessage;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Contact;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Message;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Subject;
+import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.BigMessage;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Connection;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Constants;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Helpers;
@@ -191,6 +191,7 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
             editTextMessage.setText("");
 
             Subject subject = new Subject(message);
+            final BigMessage big = new BigMessage();
 
             while (subject.isReady()) {
                 JSONObject jsonObject = new JSONObject();
@@ -208,9 +209,9 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
                             @Override
                             public void onResponse(JSONObject json) {
                                 Message message = new Gson().fromJson(json.toString(), Message.class);
-                                switch (BigMessage.bigMessageValidation(message)) {
+                                switch (big.bigMessageValidation(message)) {
                                     case BigMessage.BIG_MESSAGE_ENDED:
-                                        saveMessage(BigMessage.getBigMessage());
+                                        saveMessage(big.getBigMessage());
                                         break;
 
                                     case BigMessage.BIG_MESSAGE_NOT_DETECTED:
@@ -220,6 +221,19 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
                                     default:
                                         Log.d("SDM", "big message detected/concatenated");
                                 }
+
+//                                switch (BigMessage.bigMessageValidation(message)) {
+//                                    case BigMessage.BIG_MESSAGE_ENDED:
+//                                        saveMessage(BigMessage.getBigMessage());
+//                                        break;
+//
+//                                    case BigMessage.BIG_MESSAGE_NOT_DETECTED:
+//                                        saveMessage(message);
+//                                        break;
+//
+//                                    default:
+//                                        Log.d("SDM", "big message detected/concatenated");
+//                                }
                             }
                         }, new Response.ErrorListener() {
                             @Override

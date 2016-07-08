@@ -12,9 +12,9 @@ import com.android.volley.toolbox.Volley;
 
 public class VolleyHelper {
     private static VolleyHelper mInstance;
+    private static Context mCtx;
     private RequestQueue mRequestQueue;
     private ImageLoader mImageLoader;
-    private static Context mCtx;
 
     private VolleyHelper(Context context) {
         mCtx = context;

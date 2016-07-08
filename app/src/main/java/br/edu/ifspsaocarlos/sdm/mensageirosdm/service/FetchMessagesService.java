@@ -126,7 +126,7 @@ public class FetchMessagesService extends Service {
             while (!isCancelled() && (requestSize != 0)) {
                 try {
                     Log.d("SDM", "doInBackground hold loop - request size :" + requestSize);
-                    Thread.sleep(1000);
+                    Thread.sleep(500);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -135,7 +135,7 @@ public class FetchMessagesService extends Service {
             // agurado de 30s antes de recomeçar
             try {
                 Log.d("SDM", "doInBackground sleep");
-                Thread.sleep(30000);
+                Thread.sleep(15000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -198,11 +198,13 @@ public class FetchMessagesService extends Service {
                 JSONArray jsonArray = jsonRoot.getJSONArray("mensagens");
                 Gson gson = new Gson();
 
+                BigMessage big = new BigMessage();
+
                 for (int i = 0; i < jsonArray.length(); i++) {
                     Message message = gson.fromJson(jsonArray.getJSONObject(i).toString(), Message.class);
-                    switch (BigMessage.bigMessageValidation(message)) {
+                    switch (big.bigMessageValidation(message)) {
                         case BigMessage.BIG_MESSAGE_ENDED:
-                            messageList.add(BigMessage.getBigMessage());
+                            messageList.add(big.getBigMessage());
                             break;
 
                         case BigMessage.BIG_MESSAGE_NOT_DETECTED:

@@ -57,11 +57,10 @@ public class Message extends RealmObject {
         this.corpo = corpo;
     }
 
-    private boolean validateChar(char letra)
-    {
+    private boolean validateChar(char letra) {
         if (((letra >= 0x30) && (letra <= 0x39)) || // é numero
-            ((letra >= 0x41) && (letra <= 0x46)) ||  // é maiusculo
-            ((letra >= 0x61) && (letra <= 0x66))) // é minúsculo
+                ((letra >= 0x41) && (letra <= 0x46)) ||  // é maiusculo
+                ((letra >= 0x61) && (letra <= 0x66))) // é minúsculo
         {
             return true;
         }
@@ -89,8 +88,7 @@ public class Message extends RealmObject {
                     }
                 }
 
-                if (!ok)
-                {
+                if (!ok) {
                     break;
                 }
             }

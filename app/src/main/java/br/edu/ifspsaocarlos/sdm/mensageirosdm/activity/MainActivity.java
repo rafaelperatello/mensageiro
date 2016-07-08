@@ -1,5 +1,6 @@
 package br.edu.ifspsaocarlos.sdm.mensageirosdm.activity;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
@@ -8,6 +9,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Gravity;
 import android.widget.TextView;
 
 import com.android.volley.Request;
@@ -36,10 +38,12 @@ import io.realm.RealmResults;
 
 public class MainActivity extends AppCompatActivity implements ContactAdapter.OnContactClickListener {
 
+    private ProgressDialog dialog;
     private RecyclerView recyclerView;
     private ContactAdapter contactAdapter;
     private boolean stopThread;
-    private static int count;
+    private int count;
+
 
     @Override
     public void onContactClickListener(int position) {
@@ -53,9 +57,12 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
 
         count = 0;
 
-        TextView tvNovoContato = new TextView(this);
-        tvNovoContato.setText("Sem conexão com a internet");
-        setContentView(tvNovoContato);
+        dialog = new ProgressDialog(this);
+
+        TextView tvConnection = new TextView(this);
+        tvConnection.setText("Sem conexão com a internet");
+        tvConnection.setGravity(Gravity.CENTER);
+        setContentView(tvConnection);
     }
 
     @Override
@@ -125,6 +132,10 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
     }
 
     private void fetchUsers() {
+        dialog.setTitle("Realizando o carregamento dos dados");
+        dialog.setMessage("Aguarde o fim da requisição...");
+        dialog.show();
+
         JsonObjectRequest request = new JsonObjectRequest
                 (Request.Method.GET, Constants.SERVER_URL + Constants.CONTATO_PATH, null, new Response.Listener<JSONObject>() {
 
@@ -142,12 +153,10 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
                                 Helpers.showDialog(MainActivity.this, R.string.dialog_content_error_fetching_user);
                                 Log.d("SDM", "Não houve resposta dos contatos");
                                 updateAdapter();
-                                Thread.sleep(500);
                             } else {
-                                Thread.sleep(2000);
                                 fetchUsers();
                             }
-                        } catch (InterruptedException e) {
+                        } catch (Exception e) {
                             e.printStackTrace();
                         }
                     }
@@ -207,6 +216,20 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
 
         contactAdapter = new ContactAdapter(result.subList(0, result.size()), this);
         recyclerView.setAdapter(contactAdapter);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (Helpers.isFirstUse(MainActivity.this)) {
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                dialog.dismiss();
+            }
+        }).start();
     }
 
     private void startMessageActivity(String recipientId) {
