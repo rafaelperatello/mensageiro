@@ -76,7 +76,10 @@ public class Message extends RealmObject {
         if ((bytes[0] == 0x01) && (bytes[6] == 0x01)) {
             char cks = (char) (bytes[1] + bytes[2] + bytes[3] + bytes[4]);
             if (cks == bytes[5]) {
-                return true;
+                if (bytes[3] > 0x01) // se há mais de um pacote então é bigMessage
+                {
+                    return true;
+                }
             }
         }
         return false;
