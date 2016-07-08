@@ -35,7 +35,6 @@ public class Helpers {
     public static boolean isFirstUse(Context context) {
         SharedPreferences sharedpreferences = context.getSharedPreferences(Constants.PREFERENCES_KEY, Context.MODE_PRIVATE);
 
-        return sharedpreferences.contains(Constants.FIRST_USE_KEY);
+        return !sharedpreferences.contains(Constants.FIRST_USE_KEY);
     }
-
 }
