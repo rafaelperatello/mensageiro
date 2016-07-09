@@ -46,29 +46,8 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
     private boolean stopThread;
     private int count;
 
-
     @Override
-    public void onContactClickListener(int position) {
-        startMessageActivity(contactAdapter.getItem(position).getId());
-    }
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        Log.d("SDM", "onCreate:");
-
-        count = 0;
-
-        dialog = new ProgressDialog(this);
-
-        TextView tvConnection = new TextView(this);
-        tvConnection.setText(R.string.txt_no_connection);
-        tvConnection.setGravity(Gravity.CENTER);
-        setContentView(tvConnection);
-    }
-
-    public boolean onCreateOptionsMenu(Menu menu)
-    {
+    public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main_menu, menu);
         return true;
@@ -123,6 +102,26 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
         super.onPause();
         Log.d("SDM", "onPause:");
         stopThread = true;
+    }
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        Log.d("SDM", "onCreate:");
+
+        count = 0;
+
+        dialog = new ProgressDialog(this);
+
+        TextView tvConnection = new TextView(this);
+        tvConnection.setText(R.string.txt_no_connection);
+        tvConnection.setGravity(Gravity.CENTER);
+        setContentView(tvConnection);
+    }
+
+    @Override
+    public void onContactClickListener(int position) {
+        startMessageActivity(contactAdapter.getItem(position).getId());
     }
 
     private void loadUsers() {
@@ -267,7 +266,7 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
         startService(i);
     }
 
-    private void startAboutActivity(){
+    private void startAboutActivity() {
         Intent intentNovo = new Intent(this, AboutActivity.class);
         startActivity(intentNovo);
     }
