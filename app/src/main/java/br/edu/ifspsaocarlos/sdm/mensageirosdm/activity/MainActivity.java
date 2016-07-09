@@ -10,6 +10,8 @@ import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.TextView;
 
 import com.android.volley.Request;
@@ -60,9 +62,31 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
         dialog = new ProgressDialog(this);
 
         TextView tvConnection = new TextView(this);
-        tvConnection.setText("Sem conexão com a internet");
+        tvConnection.setText(R.string.txt_no_connection);
         tvConnection.setGravity(Gravity.CENTER);
         setContentView(tvConnection);
+    }
+
+    public boolean onCreateOptionsMenu(Menu menu)
+    {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.about) {
+            startAboutActivity();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -132,8 +156,8 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
     }
 
     private void fetchUsers() {
-        dialog.setTitle("Realizando o carregamento dos dados");
-        dialog.setMessage("Aguarde o fim da requisição...");
+        dialog.setTitle(R.string.pb_dialog_title);
+        dialog.setMessage(getString(R.string.pb_dialog_message));
         dialog.show();
 
         JsonObjectRequest request = new JsonObjectRequest
@@ -241,6 +265,11 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
     private void startMessagesService() {
         Intent i = new Intent(this, FetchMessagesService.class);
         startService(i);
+    }
+
+    private void startAboutActivity(){
+        Intent intentNovo = new Intent(this, AboutActivity.class);
+        startActivity(intentNovo);
     }
 
 }
