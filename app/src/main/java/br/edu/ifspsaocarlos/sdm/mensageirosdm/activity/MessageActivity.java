@@ -188,8 +188,8 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
 
         if (sendMessageIsAble(message)) {
             editTextMessage.setText("Enviando Mensagem...");
-            editTextMessage.setEnabled(false);
             buttonSend.setEnabled(false);
+            buttonSend.setAlpha(0.5f);
 
             SendMessageThread sendMessageThread = new SendMessageThread();
             sendMessageThread.message = message;
@@ -294,8 +294,8 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
                     @Override
                     public void run() {
                         editTextMessage.setText("");
-                        editTextMessage.setEnabled(true);
                         buttonSend.setEnabled(true);
+                        buttonSend.setAlpha(1f);
                     }
                 });
             }
