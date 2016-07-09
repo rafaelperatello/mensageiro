@@ -11,7 +11,6 @@ import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
-import android.util.Log;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -47,7 +46,6 @@ public class FetchMessagesService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d("SDM", "onCreate service ");
 
         myApplication = ((MyApplication) getApplication());
         task = new MyAsyncTask();
@@ -57,7 +55,6 @@ public class FetchMessagesService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         super.onStartCommand(intent, flags, startId);
-        Log.d("SDM", "onStartCommand service ");
 
         return Service.START_NOT_STICKY;
     }
@@ -70,7 +67,6 @@ public class FetchMessagesService extends Service {
 
     @Override
     public void onDestroy() {
-        Log.d("SDM", "onDestroy service ");
 
         task.cancel(true);
         super.onDestroy();
@@ -94,22 +90,20 @@ public class FetchMessagesService extends Service {
             requestQueue = Volley.newRequestQueue(context);
             requestSize = 0;
 
-            Log.d("SDM", "MyAsyncTask");
         }
 
         @Override
         protected Void doInBackground(Void... params) {
-            Log.d("SDM", "MyAsyncTask doInBackground ");
             Realm realm = Realm.getDefaultInstance();
             RealmQuery<Contact> queryContacts = realm.where(Contact.class);
             RealmResults<Contact> resultContacts = queryContacts.findAll();
             requestSize = resultContacts.size() * 2;
-            Log.d("SDM", "MyAsyncTask doInBackground 1");
+
+
             // loop de requisição de mensagens de cada contato
             for (Contact contact : resultContacts.subList(0, resultContacts.size())) {
                 try {
                     ContactMessage conMessage = realm.where(ContactMessage.class).equalTo("id", contact.getId()).findFirst();
-                    Log.d("SDM", "MyAsyncTask doInBackground x");
                     if (conMessage != null) {
                         fetchMessages(conMessage.getLastFromContact(), conMessage.getId(), userId);
                         fetchMessages(conMessage.getLastToContact(), userId, conMessage.getId());
@@ -128,17 +122,14 @@ public class FetchMessagesService extends Service {
             // loop para esperar todas as requests finalizarem antes de começar o próximo burst
             while (!isCancelled() && (requestSize != 0)) {
                 try {
-                    Log.d("SDM", "doInBackground hold loop - request size :" + requestSize);
-                    Thread.sleep(500);
+                    Thread.sleep(50);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
 
-            // aguardo de 30s antes de recomeçar
             try {
-                Log.d("SDM", "doInBackground sleep");
-                Thread.sleep(15000);
+                Thread.sleep(2000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
@@ -151,7 +142,6 @@ public class FetchMessagesService extends Service {
 
         @Override
         protected void onPostExecute(Void s) {
-            Log.d("SDM", "MyAsyncTask onPostExecute ");
             task = new MyAsyncTask();
             task.execute();
         }
@@ -179,7 +169,6 @@ public class FetchMessagesService extends Service {
                         @Override
                         public void onResponse(JSONObject json) {
                             requestSize--;
-                            Log.d("SDM", "onReponse");
                             parseMessageList(json);
                         }
                     }, new Response.ErrorListener() {
@@ -213,9 +202,6 @@ public class FetchMessagesService extends Service {
                         case BigMessage.BIG_MESSAGE_NOT_DETECTED:
                             messageList.add(message);
                             break;
-
-                        default:
-                            Log.d("SDM", "big message detected/concatenated (service)");
                     }
                 }
 
@@ -280,8 +266,6 @@ public class FetchMessagesService extends Service {
                 conMenssageNew.setId(mensagem.getDestino_id());
                 conMenssageNew.setLastToContact(mensagem.getId());
             }
-
-            Log.d("SDM", conMenssageNew.getId() + " from: " + conMenssageNew.getLastFromContact() + " to: " + conMenssageNew.getLastToContact());
 
             realm.executeTransactionAsync(new Realm.Transaction() {
                 @Override

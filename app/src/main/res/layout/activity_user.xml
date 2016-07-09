@@ -17,7 +17,10 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/hint_user_name"
-            android:maxLength="100" />
+            android:inputType="textPersonName|textCapWords"
+            android:maxLength="100"
+            android:maxLines="1"
+            android:singleLine="true" />
     </android.support.design.widget.TextInputLayout>
 
     <android.support.design.widget.TextInputLayout
@@ -30,7 +33,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:hint="@string/hint_nickname"
-            android:maxLength="100" />
+            android:maxLength="100"
+            android:maxLines="1"
+            android:singleLine="true" />
     </android.support.design.widget.TextInputLayout>
 
     <Button

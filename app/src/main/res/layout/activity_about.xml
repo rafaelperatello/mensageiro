@@ -2,9 +2,10 @@
 <GridLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0989a2"
+    android:background="@color/colorPrimary"
     android:columnCount="1"
     android:orientation="vertical"
+    android:padding="16dp"
     android:rowCount="9">
 
     <Space
@@ -20,6 +21,7 @@
         android:layout_column="0"
         android:layout_row="1"
         android:gravity="center"
+        android:textColor="@color/color_white"
         android:text="SDM MESSENGER\nVersion 1.0.0"
         android:textAppearance="?android:attr/textAppearanceLarge" />
 
@@ -56,6 +58,7 @@
         android:layout_column="0"
         android:layout_row="6"
         android:gravity="center"
+        android:textColor="@color/color_white"
         android:text="by:\n  Rafael Peratello\n  Raphael Gava"
         android:textAppearance="?android:attr/textAppearanceLarge" />
 
@@ -66,6 +69,7 @@
         android:layout_column="0"
         android:layout_row="8"
         android:gravity="center"
+        android:textColor="@color/color_white"
         android:text="Copyright© 2016 RR"
-        android:textAppearance="?android:attr/textAppearanceLarge" />
+        android:textSize="14sp" />
 </GridLayout>

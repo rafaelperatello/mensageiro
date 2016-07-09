@@ -22,7 +22,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
         <activity
             android:name=".activity.MessageActivity"
             android:parentActivityName=".activity.MainActivity">
@@ -30,7 +29,6 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".activity.MainActivity" />
         </activity>
-
         <activity
             android:name=".activity.AboutActivity"
             android:parentActivityName=".activity.MainActivity">
@@ -38,7 +36,6 @@
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".activity.MainActivity" />
         </activity>
-
         <activity android:name=".activity.UserActivity" />
 
         <service
@@ -52,7 +49,7 @@
             </intent-filter>
         </service>
 
-
+        <activity android:name=".activity.ContactActivity"></activity>
     </application>
 
 </manifest>
