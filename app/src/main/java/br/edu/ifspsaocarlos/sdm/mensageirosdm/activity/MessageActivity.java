@@ -1,5 +1,6 @@
 package br.edu.ifspsaocarlos.sdm.mensageirosdm.activity;
 
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
@@ -71,7 +72,7 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.fab:
-                sendMenssage();
+                sendMessage();
                 break;
         }
     }
@@ -160,7 +161,6 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
         recyclerView.smoothScrollToPosition(adapter.getItemCount());
     }
 
-
     private void updateAdapter(RealmResults<Message> element) {
         for (int i = resultMessages.size() - 1; i < element.size(); i++) {
             adapter.addItem(resultMessages.get(i));
@@ -180,70 +180,12 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
         return false;
     }
 
-    private void sendMenssage() {
+    private void sendMessage() {
         String message = editTextMessage.getText().toString();
 
         if (sendMessageIsAble(message)) {
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append(Constants.SERVER_URL);
-            stringBuilder.append(Constants.MENSAGEM_PATH);
-
-            editTextMessage.setText("");
-
-            Subject subject = new Subject(message);
-            final BigMessage big = new BigMessage();
-
-            while (subject.isReady()) {
-                JSONObject jsonObject = new JSONObject();
-                try {
-                    jsonObject.put("origem_id", userId);
-                    jsonObject.put("destino_id", contactId);
-                    jsonObject.put("assunto", subject.finalSubject());
-                    jsonObject.put("corpo", subject.mensagemToSend());
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-                JsonObjectRequest request = new JsonObjectRequest
-                        (Request.Method.POST, stringBuilder.toString(), jsonObject, new Response.Listener<JSONObject>() {
-                            @Override
-                            public void onResponse(JSONObject json) {
-                                Message message = new Gson().fromJson(json.toString(), Message.class);
-                                switch (big.bigMessageValidation(message)) {
-                                    case BigMessage.BIG_MESSAGE_ENDED:
-                                        saveMessage(big.getBigMessage());
-                                        break;
-
-                                    case BigMessage.BIG_MESSAGE_NOT_DETECTED:
-                                        saveMessage(message);
-                                        break;
-
-                                    default:
-                                        Log.d("SDM", "big message detected/concatenated");
-                                }
-
-//                                switch (BigMessage.bigMessageValidation(message)) {
-//                                    case BigMessage.BIG_MESSAGE_ENDED:
-//                                        saveMessage(BigMessage.getBigMessage());
-//                                        break;
-//
-//                                    case BigMessage.BIG_MESSAGE_NOT_DETECTED:
-//                                        saveMessage(message);
-//                                        break;
-//
-//                                    default:
-//                                        Log.d("SDM", "big message detected/concatenated");
-//                                }
-                            }
-                        }, new Response.ErrorListener() {
-                            @Override
-                            public void onErrorResponse(VolleyError error) {
-                                onBackPressed();
-                            }
-                        });
-
-                requestQueue.add(request);
-            }
+            SendMessageAsyncTask sendMessageAsyncTask = new SendMessageAsyncTask();
+            sendMessageAsyncTask.execute(message);
         }
     }
 
@@ -262,5 +204,116 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
             public void onError(Throwable error) {
             }
         });
+    }
+
+    class SendMessageAsyncTask extends AsyncTask<String, Void, Boolean> {
+        //Control
+        boolean isWaitEnable;
+        boolean isSuccessful;
+
+        @Override
+        protected void onPreExecute() {
+            Log.d("SDM_SEND_TASK", "onPreExecute");
+
+            editTextMessage.setText("Enviando Mensagem...");
+            editTextMessage.setEnabled(false);
+            buttonSend.setEnabled(false);
+        }
+
+        @Override
+        protected Boolean doInBackground(String... params) {
+            Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
+
+            Log.d("SDM_SEND_TASK", "doInBackground");
+            int i = 0;
+
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append(Constants.SERVER_URL);
+            stringBuilder.append(Constants.MENSAGEM_PATH);
+
+            Subject subject = new Subject(params[0]);
+            final BigMessage big = new BigMessage();
+
+            while (subject.isReady()) {
+                Log.d("SDM_SEND_TASK", "doInBackground loop " + i++);
+
+                //Control
+                isWaitEnable = true;
+                isSuccessful = false;
+
+                //Build json
+                JSONObject jsonObject = new JSONObject();
+                try {
+                    jsonObject.put("origem_id", userId);
+                    jsonObject.put("destino_id", contactId);
+                    jsonObject.put("assunto", subject.finalSubject());
+                    jsonObject.put("corpo", subject.mensagemToSend());
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    return false;
+                }
+
+                //Request
+                JsonObjectRequest request = new JsonObjectRequest
+                        (Request.Method.POST, stringBuilder.toString(), jsonObject, new Response.Listener<JSONObject>() {
+                            @Override
+                            public void onResponse(JSONObject json) {
+                                Log.d("SDM_SEND_TASK", "onResponse");
+
+                                isSuccessful = true;
+                                isWaitEnable = false;
+
+                                Message message = new Gson().fromJson(json.toString(), Message.class);
+                                switch (big.bigMessageValidation(message)) {
+                                    case BigMessage.BIG_MESSAGE_ENDED:
+                                        saveMessage(big.getBigMessage());
+                                        break;
+
+                                    case BigMessage.BIG_MESSAGE_NOT_DETECTED:
+                                        saveMessage(message);
+                                        break;
+                                }
+
+                            }
+                        }, new Response.ErrorListener() {
+                            @Override
+                            public void onErrorResponse(VolleyError error) {
+                                Log.d("SDM_SEND_TASK", "onErrorResponse");
+
+                                isSuccessful = false;
+                                isWaitEnable = false;
+                            }
+                        });
+
+                requestQueue.add(request);
+
+                Log.d("SDM_SEND_TASK", "wait");
+                //wait loop to next request
+                while (isWaitEnable) {
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                if (!isSuccessful) {
+                    Log.d("SDM_SEND_TASK", "error checked");
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        @Override
+        protected void onPostExecute(Boolean successful) {
+            Log.d("SDM_SEND_TASK", "onPostExecute");
+
+            editTextMessage.setText("");
+            editTextMessage.setEnabled(true);
+            buttonSend.setEnabled(true);
+
+            //todo check successful
+        }
     }
 }
