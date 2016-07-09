@@ -1,12 +1,10 @@
 package br.edu.ifspsaocarlos.sdm.mensageirosdm.activity;
 
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -184,8 +182,13 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
         String message = editTextMessage.getText().toString();
 
         if (sendMessageIsAble(message)) {
-            SendMessageAsyncTask sendMessageAsyncTask = new SendMessageAsyncTask();
-            sendMessageAsyncTask.execute(message);
+            editTextMessage.setText("Enviando Mensagem...");
+            editTextMessage.setEnabled(false);
+            buttonSend.setEnabled(false);
+
+            SendMessageThread sendMessageThread = new SendMessageThread();
+            sendMessageThread.message = message;
+            sendMessageThread.start();
         }
     }
 
@@ -206,37 +209,27 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
         });
     }
 
-    class SendMessageAsyncTask extends AsyncTask<String, Void, Boolean> {
+    class SendMessageThread extends Thread {
+        public String message;
+
         //Control
         boolean isWaitEnable;
         boolean isSuccessful;
 
         @Override
-        protected void onPreExecute() {
-            Log.d("SDM_SEND_TASK", "onPreExecute");
-
-            editTextMessage.setText("Enviando Mensagem...");
-            editTextMessage.setEnabled(false);
-            buttonSend.setEnabled(false);
-        }
-
-        @Override
-        protected Boolean doInBackground(String... params) {
+        public void run() {
             Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
 
-            Log.d("SDM_SEND_TASK", "doInBackground");
             int i = 0;
 
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.append(Constants.SERVER_URL);
             stringBuilder.append(Constants.MENSAGEM_PATH);
 
-            Subject subject = new Subject(params[0]);
+            Subject subject = new Subject(message);
             final BigMessage big = new BigMessage();
 
             while (subject.isReady()) {
-                Log.d("SDM_SEND_TASK", "doInBackground loop " + i++);
-
                 //Control
                 isWaitEnable = true;
                 isSuccessful = false;
@@ -250,7 +243,7 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
                     jsonObject.put("corpo", subject.mensagemToSend());
                 } catch (JSONException e) {
                     e.printStackTrace();
-                    return false;
+                    return;
                 }
 
                 //Request
@@ -258,8 +251,6 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
                         (Request.Method.POST, stringBuilder.toString(), jsonObject, new Response.Listener<JSONObject>() {
                             @Override
                             public void onResponse(JSONObject json) {
-                                Log.d("SDM_SEND_TASK", "onResponse");
-
                                 isSuccessful = true;
                                 isWaitEnable = false;
 
@@ -278,8 +269,6 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
                         }, new Response.ErrorListener() {
                             @Override
                             public void onErrorResponse(VolleyError error) {
-                                Log.d("SDM_SEND_TASK", "onErrorResponse");
-
                                 isSuccessful = false;
                                 isWaitEnable = false;
                             }
@@ -287,7 +276,6 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
 
                 requestQueue.add(request);
 
-                Log.d("SDM_SEND_TASK", "wait");
                 //wait loop to next request
                 while (isWaitEnable) {
                     try {
@@ -298,22 +286,19 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
                 }
 
                 if (!isSuccessful) {
-                    Log.d("SDM_SEND_TASK", "error checked");
-                    return false;
+                    return;
                 }
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        editTextMessage.setText("");
+                        editTextMessage.setEnabled(true);
+                        buttonSend.setEnabled(true);
+                    }
+                });
             }
-            return true;
-        }
-
-        @Override
-        protected void onPostExecute(Boolean successful) {
-            Log.d("SDM_SEND_TASK", "onPostExecute");
-
-            editTextMessage.setText("");
-            editTextMessage.setEnabled(true);
-            buttonSend.setEnabled(true);
-
-            //todo check successful
+            return;
         }
     }
 }
