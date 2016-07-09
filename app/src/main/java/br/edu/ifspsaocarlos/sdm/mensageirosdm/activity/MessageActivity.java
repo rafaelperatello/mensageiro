@@ -55,6 +55,8 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
 
     private RequestQueue requestQueue;
 
+    Contact contact;
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
@@ -95,7 +97,7 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
             contactId = extras.getString(Constants.SENDER_USER_KEY);
         }
 
-        Contact contact = realm.where(Contact.class).equalTo("id", contactId).findFirst();
+        contact = realm.where(Contact.class).equalTo("id", contactId).findFirst();
 
         // setup toolBar
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -109,6 +111,7 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
 
         // setup recycler
         LinearLayoutManager mLayoutManager = new LinearLayoutManager(this);
+        mLayoutManager.setStackFromEnd(true);
         recyclerView.setLayoutManager(mLayoutManager);
         recyclerView.setHasFixedSize(false);
         messageList = new ArrayList<>();
@@ -156,12 +159,14 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
 
         adapter = new MessageAdapter(messageList, userId);
         recyclerView.setAdapter(adapter);
-        recyclerView.smoothScrollToPosition(adapter.getItemCount());
     }
 
     private void updateAdapter(RealmResults<Message> element) {
-        for (int i = resultMessages.size() - 1; i < element.size(); i++) {
-            adapter.addItem(resultMessages.get(i));
+        List<Message> buffMessageList = element.subList(messageList.size(), element.size());
+
+        for (int i = 0; i < buffMessageList.size(); i++) {
+            messageList.add(buffMessageList.get(i));
+            adapter.notifyItemInserted(adapter.getItemCount());
         }
 
         recyclerView.smoothScrollToPosition(adapter.getItemCount());

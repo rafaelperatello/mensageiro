@@ -67,11 +67,6 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.ViewHold
         return messageList.get(position);
     }
 
-    public void addItem(Message message) {
-        messageList.add(message);
-        notifyItemChanged(messageList.size());
-    }
-
     public static class ViewHolder extends RecyclerView.ViewHolder {
         public TextView mTextViewMessage;
         public RelativeLayout mRelativeLayoutMessage;
