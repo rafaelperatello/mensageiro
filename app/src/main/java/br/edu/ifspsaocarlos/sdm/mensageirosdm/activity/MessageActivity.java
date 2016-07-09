@@ -218,10 +218,6 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
 
         @Override
         public void run() {
-            Thread.currentThread().setPriority(Thread.MAX_PRIORITY);
-
-            int i = 0;
-
             StringBuilder stringBuilder = new StringBuilder();
             stringBuilder.append(Constants.SERVER_URL);
             stringBuilder.append(Constants.MENSAGEM_PATH);
