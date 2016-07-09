@@ -47,6 +47,10 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ViewHold
         return contactList.get(position);
     }
 
+    public interface OnContactClickListener {
+        void onContactClickListener(int position);
+    }
+
     public static class ViewHolder extends RecyclerView.ViewHolder {
         public TextView mTextViewName;
         public TextView mTextViewNickname;
@@ -67,9 +71,5 @@ public class ContactAdapter extends RecyclerView.Adapter<ContactAdapter.ViewHold
                 }
             });
         }
-    }
-
-    public interface OnContactClickListener {
-        void onContactClickListener(int position);
     }
 }

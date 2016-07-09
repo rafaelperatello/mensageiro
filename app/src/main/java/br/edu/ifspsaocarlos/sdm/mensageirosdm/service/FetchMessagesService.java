@@ -29,9 +29,11 @@ import java.util.List;
 
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.R;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.activity.MessageActivity;
+import br.edu.ifspsaocarlos.sdm.mensageirosdm.application.MyApplication;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Contact;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.ContactMessage;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Message;
+import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.BigMessage;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Constants;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Helpers;
 import io.realm.Realm;
@@ -40,12 +42,14 @@ import io.realm.RealmResults;
 
 public class FetchMessagesService extends Service {
     private MyAsyncTask task;
+    private MyApplication myApplication;
 
     @Override
     public void onCreate() {
         super.onCreate();
         Log.d("SDM", "onCreate service ");
 
+        myApplication = ((MyApplication) getApplication());
         task = new MyAsyncTask();
         task.execute();
     }
@@ -73,8 +77,8 @@ public class FetchMessagesService extends Service {
     }
 
     class MyAsyncTask extends AsyncTask<Void, Void, Void> {
-        private final String REQUEST_TAG = "REQUEST_TAG";
         private String userId;
+        private boolean isFirstUse;
 
         private Context context;
         private RequestQueue requestQueue;
@@ -85,28 +89,37 @@ public class FetchMessagesService extends Service {
             this.context = getApplication();
 
             userId = Helpers.getUserId(context);
+            isFirstUse = Helpers.isFirstUse(context);
+
             requestQueue = Volley.newRequestQueue(context);
             requestSize = 0;
+
+            Log.d("SDM", "MyAsyncTask");
         }
 
         @Override
         protected Void doInBackground(Void... params) {
             Log.d("SDM", "MyAsyncTask doInBackground ");
-
             Realm realm = Realm.getDefaultInstance();
             RealmQuery<Contact> queryContacts = realm.where(Contact.class);
             RealmResults<Contact> resultContacts = queryContacts.findAll();
-
-            requestSize = resultContacts.size();
-
+            requestSize = resultContacts.size() * 2;
+            Log.d("SDM", "MyAsyncTask doInBackground 1");
             // loop de requisição de mensagens de cada contato
             for (Contact contact : resultContacts.subList(0, resultContacts.size())) {
-                ContactMessage conMessage = realm.where(ContactMessage.class).equalTo("id", contact.getId()).findFirst();
-
-                if (conMessage != null) {
-                    fetchMessages(conMessage.getLastMessageId(), conMessage.getId());
-                } else {
-                    fetchMessages("0", contact.getId());
+                try {
+                    ContactMessage conMessage = realm.where(ContactMessage.class).equalTo("id", contact.getId()).findFirst();
+                    Log.d("SDM", "MyAsyncTask doInBackground x");
+                    if (conMessage != null) {
+                        fetchMessages(conMessage.getLastFromContact(), conMessage.getId(), userId);
+                        fetchMessages(conMessage.getLastToContact(), userId, conMessage.getId());
+                    } else {
+                        fetchMessages("0", contact.getId(), userId);
+                        fetchMessages("0", userId, contact.getId());
+                    }
+                    Thread.sleep(10);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
 
@@ -116,21 +129,22 @@ public class FetchMessagesService extends Service {
             while (!isCancelled() && (requestSize != 0)) {
                 try {
                     Log.d("SDM", "doInBackground hold loop - request size :" + requestSize);
-                    Thread.sleep(1000);
+                    Thread.sleep(500);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
             }
 
-            // agurado de 30s antes de recomeçar
+            // aguardo de 30s antes de recomeçar
             try {
                 Log.d("SDM", "doInBackground sleep");
-                Thread.sleep(30000);
+                Thread.sleep(15000);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
 
-            requestQueue.cancelAll(REQUEST_TAG);
+            requestQueue.cancelAll(Constants.REQUEST_TAG);
+            Helpers.updateFirstUse(context);
 
             return null;
         }
@@ -138,12 +152,15 @@ public class FetchMessagesService extends Service {
         @Override
         protected void onPostExecute(Void s) {
             Log.d("SDM", "MyAsyncTask onPostExecute ");
-
             task = new MyAsyncTask();
             task.execute();
         }
 
-        private void fetchMessages(String idMessage, String idContact) {
+        private void fetchMessages(String idMessage, String idContact, String idUser) {
+            // verifica se é null pois pode não estar no realm ainda!
+            if (idMessage == null) {
+                idMessage = "0";
+            }
             // incrementa o id da última mensagem para que exiba somente mensagens novas
             Integer idMessageRequest = Integer.parseInt(idMessage);
             idMessageRequest++;
@@ -154,7 +171,7 @@ public class FetchMessagesService extends Service {
             stringBuilder.append("/" + idMessageRequest + "/");
             stringBuilder.append(idContact);
             stringBuilder.append("/");
-            stringBuilder.append(userId);
+            stringBuilder.append(idUser);
 
             JsonObjectRequest request = new JsonObjectRequest
                     (Request.Method.GET, stringBuilder.toString(), null, new Response.Listener<JSONObject>() {
@@ -162,6 +179,7 @@ public class FetchMessagesService extends Service {
                         @Override
                         public void onResponse(JSONObject json) {
                             requestSize--;
+                            Log.d("SDM", "onReponse");
                             parseMessageList(json);
                         }
                     }, new Response.ErrorListener() {
@@ -172,7 +190,7 @@ public class FetchMessagesService extends Service {
                         }
                     });
 
-            request.setTag(REQUEST_TAG);
+            request.setTag(Constants.REQUEST_TAG);
             requestQueue.add(request);
         }
 
@@ -183,9 +201,22 @@ public class FetchMessagesService extends Service {
                 JSONArray jsonArray = jsonRoot.getJSONArray("mensagens");
                 Gson gson = new Gson();
 
+                BigMessage big = new BigMessage();
+
                 for (int i = 0; i < jsonArray.length(); i++) {
                     Message message = gson.fromJson(jsonArray.getJSONObject(i).toString(), Message.class);
-                    messageList.add(message);
+                    switch (big.bigMessageValidation(message)) {
+                        case BigMessage.BIG_MESSAGE_ENDED:
+                            messageList.add(big.getBigMessage());
+                            break;
+
+                        case BigMessage.BIG_MESSAGE_NOT_DETECTED:
+                            messageList.add(message);
+                            break;
+
+                        default:
+                            Log.d("SDM", "big message detected/concatenated (service)");
+                    }
                 }
 
             } catch (Exception e) {
@@ -201,7 +232,6 @@ public class FetchMessagesService extends Service {
 
                     // Usado para atualizar indice
                     final Message mensagem = messageList.get(messageList.size() - 1);
-
                     Realm realm = Realm.getDefaultInstance();
                     realm.executeTransactionAsync(new Realm.Transaction() {
                         @Override
@@ -212,7 +242,9 @@ public class FetchMessagesService extends Service {
                         @Override
                         public void onSuccess() {
                             updateMessagesIndex(mensagem);
-                            showNotification(messageList);
+
+                            if (!userId.equals(messageList.get(0).getOrigem_id()))
+                                showNotification(messageList);
                         }
                     }, new Realm.Transaction.OnError() {
                         @Override
@@ -224,15 +256,37 @@ public class FetchMessagesService extends Service {
         }
 
         private void updateMessagesIndex(Message mensagem) {
-            final ContactMessage conMen = new ContactMessage();
-            conMen.setId(mensagem.getOrigem_id());
-            conMen.setLastMessageId(mensagem.getId());
+            ContactMessage conMenssage;
+            final ContactMessage conMenssageNew;
 
             Realm realm = Realm.getDefaultInstance();
+            if (!mensagem.getOrigem_id().equals(userId)) {
+                conMenssage = realm.where(ContactMessage.class).equalTo("id", mensagem.getOrigem_id()).findFirst();
+            } else {
+                conMenssage = realm.where(ContactMessage.class).equalTo("id", mensagem.getDestino_id()).findFirst();
+            }
+
+            conMenssageNew = new ContactMessage();
+            if (conMenssage != null) {
+                conMenssageNew.setId(conMenssage.getId());
+                conMenssageNew.setLastToContact(conMenssage.getLastToContact());
+                conMenssageNew.setLastFromContact(conMenssage.getLastFromContact());
+            }
+
+            if (!mensagem.getOrigem_id().equals(userId)) {
+                conMenssageNew.setId(mensagem.getOrigem_id());
+                conMenssageNew.setLastFromContact(mensagem.getId());
+            } else {
+                conMenssageNew.setId(mensagem.getDestino_id());
+                conMenssageNew.setLastToContact(mensagem.getId());
+            }
+
+            Log.d("SDM", conMenssageNew.getId() + " from: " + conMenssageNew.getLastFromContact() + " to: " + conMenssageNew.getLastToContact());
+
             realm.executeTransactionAsync(new Realm.Transaction() {
                 @Override
                 public void execute(Realm bgRealm) {
-                    bgRealm.copyToRealmOrUpdate(conMen);
+                    bgRealm.copyToRealmOrUpdate(conMenssageNew);
                 }
             }, new Realm.Transaction.OnSuccess() {
                 @Override
@@ -246,33 +300,44 @@ public class FetchMessagesService extends Service {
         }
 
         private void showNotification(List<Message> messageList) {
-            Integer id = Integer.parseInt(messageList.get(0).getOrigem_id());
-            NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-            mNotificationManager.cancel(id);
+            String currentMessagingUser = myApplication.getCurrentMessagingUser();
 
-            Realm realm = Realm.getDefaultInstance();
-            Contact contato = realm.where(Contact.class).equalTo("id", messageList.get(0).getOrigem_id()).findFirst();
+            // check first use
+            if (!isFirstUse) {
 
-            NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(getApplicationContext())
-                    .setSmallIcon(R.drawable.ic_send_white_24dp)
-                    .setWhen(System.currentTimeMillis())
-                    .setAutoCancel(true)
-                    .setContentTitle("Nova mensagem")
-                    .setContentText(contato.getNome_completo());
+                // verifica se o usuario esta conversando com o usuario da notificação
+                if (!messageList.get(0).getOrigem_id().equals(currentMessagingUser)) {
 
-            Intent resultIntent = new Intent(getApplicationContext(), MessageActivity.class);
-            resultIntent.putExtra(Constants.SENDER_USER_KEY, messageList.get(0).getOrigem_id());
+                    Integer id = Integer.parseInt(messageList.get(0).getOrigem_id());
+                    NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+                    mNotificationManager.cancel(id);
 
-            TaskStackBuilder stackBuilder = TaskStackBuilder.create(getApplicationContext());
-            stackBuilder.addParentStack(MessageActivity.class);
-            stackBuilder.addNextIntent(resultIntent);
+                    Realm realm = Realm.getDefaultInstance();
+                    Contact contact = realm.where(Contact.class).equalTo("id", messageList.get(0).getOrigem_id()).findFirst();
 
-            PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
-            mBuilder.setContentIntent(resultPendingIntent);
+                    if (contact != null) {
+                        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(getApplicationContext())
+                                .setSmallIcon(R.drawable.ic_send_white_24dp)
+                                .setWhen(System.currentTimeMillis())
+                                .setAutoCancel(true)
+                                .setContentTitle("Nova mensagem")
+                                .setContentText(contact.getNome_completo());
+
+                        Intent resultIntent = new Intent(getApplicationContext(), MessageActivity.class);
+                        resultIntent.putExtra(Constants.SENDER_USER_KEY, messageList.get(0).getOrigem_id());
+
+                        TaskStackBuilder stackBuilder = TaskStackBuilder.create(getApplicationContext());
+                        stackBuilder.addParentStack(MessageActivity.class);
+                        stackBuilder.addNextIntent(resultIntent);
+
+                        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+                        mBuilder.setContentIntent(resultPendingIntent);
 
 
-            mNotificationManager.notify(id, mBuilder.build());
+                        mNotificationManager.notify(id, mBuilder.build());
+                    }
+                }
+            }
         }
     }
 }
-

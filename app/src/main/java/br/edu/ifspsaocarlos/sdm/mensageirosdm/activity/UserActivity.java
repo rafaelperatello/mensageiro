@@ -40,21 +40,10 @@ public class UserActivity extends AppCompatActivity {
         buttonSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
-                // todo remove after tests
-                saveUserOnPreferences("1");//315
-
-//                checkUserInfo();
+//                saveUserOnPreferences("400"); //405 rafa!
+                checkUserInfo();
             }
         });
-    }
-
-    private void checkUser() {
-        String userId = Helpers.getUserId(this);
-
-        if (!TextUtils.isEmpty(userId)) {
-            showHome();
-        }
     }
 
     private void showHome() {

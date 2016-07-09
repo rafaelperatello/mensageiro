@@ -5,7 +5,6 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -20,7 +19,6 @@ import com.android.volley.toolbox.JsonObjectRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.gson.Gson;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -31,9 +29,11 @@ import java.util.List;
 
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.R;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.adapter.MessageAdapter;
+import br.edu.ifspsaocarlos.sdm.mensageirosdm.application.MyApplication;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Contact;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Message;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.model.Subject;
+import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.BigMessage;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Connection;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Constants;
 import br.edu.ifspsaocarlos.sdm.mensageirosdm.util.Helpers;
@@ -56,6 +56,8 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
 
     private RequestQueue requestQueue;
 
+    Contact contact;
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
@@ -71,9 +73,15 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.fab:
-                sendMenssage();
+                sendMessage();
                 break;
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        ((MyApplication) getApplication()).setCurrentMessagingUser("");
+        super.onDestroy();
     }
 
     @Override
@@ -94,14 +102,14 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
         Bundle extras = getIntent().getExtras();
         if (extras != null) {
             contactId = extras.getString(Constants.SENDER_USER_KEY);
+            ((MyApplication) getApplication()).setCurrentMessagingUser(contactId);
         }
 
-        Contact contact = realm.where(Contact.class).equalTo("id", contactId).findFirst();
+        contact = realm.where(Contact.class).equalTo("id", contactId).findFirst();
 
         // setup toolBar
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setTitle(contact.getNome_completo());
-
 
         // bind views
         recyclerView = (RecyclerView) findViewById(R.id.recycler);
@@ -109,20 +117,15 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
         buttonSend = (FloatingActionButton) findViewById(R.id.fab);
         buttonSend.setOnClickListener(this);
 
-
         // setup recycler
         LinearLayoutManager mLayoutManager = new LinearLayoutManager(this);
+        mLayoutManager.setStackFromEnd(true);
         recyclerView.setLayoutManager(mLayoutManager);
         recyclerView.setHasFixedSize(false);
         messageList = new ArrayList<>();
 
-
         // check messages
-        if (Helpers.isCurrentUserSentMessagesSynchronized(this, contactId)) {
-            setupQuery();
-        } else {
-            fetchUserSentMessages();
-        }
+        setupQuery();
     }
 
     private void setupQuery() {
@@ -164,117 +167,42 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
 
         adapter = new MessageAdapter(messageList, userId);
         recyclerView.setAdapter(adapter);
-        recyclerView.smoothScrollToPosition(adapter.getItemCount());
     }
 
-
     private void updateAdapter(RealmResults<Message> element) {
-        for (int i = resultMessages.size() - 1; i < element.size(); i++) {
-            adapter.addItem(resultMessages.get(i));
+        List<Message> buffMessageList = element.subList(messageList.size(), element.size());
+
+        for (int i = 0; i < buffMessageList.size(); i++) {
+            messageList.add(buffMessageList.get(i));
+            adapter.notifyItemInserted(adapter.getItemCount());
         }
 
         recyclerView.smoothScrollToPosition(adapter.getItemCount());
     }
 
-    private boolean sendMessageIsAble(String message)
-    {
+    private boolean sendMessageIsAble(String message) {
         if (Connection.connectionVerify(this)) {
             if (message.length() > 0) {
                 return true;
             }
-        }
-        else
-        {
+        } else {
             Toast.makeText(this, "No momento não há conexão.", Toast.LENGTH_SHORT).show();
         }
         return false;
     }
 
-    private void sendMenssage() {
+    private void sendMessage() {
         String message = editTextMessage.getText().toString();
 
-        if (sendMessageIsAble(message))
-        {
-            StringBuilder stringBuilder = new StringBuilder();
-            stringBuilder.append(Constants.SERVER_URL);
-            stringBuilder.append(Constants.MENSAGEM_PATH);
+        if (sendMessageIsAble(message)) {
+            editTextMessage.setText("Enviando Mensagem...");
+            buttonSend.setEnabled(false);
+            buttonSend.setAlpha(0.5f);
 
-            editTextMessage.setText("");
-
-            Subject subject = new Subject(message);
-
-            while (subject.isReady()) {
-                JSONObject jsonObject = new JSONObject();
-                try {
-                    jsonObject.put("origem_id", userId);
-                    jsonObject.put("destino_id", contactId);
-                    jsonObject.put("assunto", subject.finalSubject());
-                    jsonObject.put("corpo", subject.mensagemToSend());
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-
-                JsonObjectRequest request = new JsonObjectRequest
-                        (Request.Method.POST, stringBuilder.toString(), jsonObject, new Response.Listener<JSONObject>() {
-                            @Override
-                            public void onResponse(JSONObject json) {
-                                Message message = new Gson().fromJson(json.toString(), Message.class);
-                                saveMessage(message);
-                            }
-                        }, new Response.ErrorListener() {
-                            @Override
-                            public void onErrorResponse(VolleyError error) {
-                                onBackPressed();
-                            }
-                        });
-
-                requestQueue.add(request);
-            }
+            SendMessageThread sendMessageThread = new SendMessageThread();
+            sendMessageThread.message = message;
+            sendMessageThread.start();
         }
-    }
-
-    private void fetchUserSentMessages() {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append(Constants.SERVER_URL);
-        stringBuilder.append(Constants.MENSAGEM_PATH);
-        stringBuilder.append("/0/");
-        stringBuilder.append(userId);
-        stringBuilder.append("/");
-        stringBuilder.append(contactId);
-
-        JsonObjectRequest request = new JsonObjectRequest
-                (Request.Method.GET, stringBuilder.toString(), null, new Response.Listener<JSONObject>() {
-                    @Override
-                    public void onResponse(JSONObject json) {
-                        parseMessageList(json);
-                    }
-                }, new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        onBackPressed();
-                    }
-                });
-
-        requestQueue.add(request);
-    }
-
-    private void parseMessageList(JSONObject jsonRoot) {
-        List<Message> messageList = new ArrayList<>();
-
-        try {
-            JSONArray jsonArray = jsonRoot.getJSONArray("mensagens");
-            Gson gson = new Gson();
-
-            for (int i = 0; i < jsonArray.length(); i++) {
-                Message message = gson.fromJson(jsonArray.getJSONObject(i).toString(), Message.class);
-                messageList.add(message);
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        saveMessages(messageList);
     }
 
     private void saveMessage(final Message message) {
@@ -294,28 +222,92 @@ public class MessageActivity extends AppCompatActivity implements OnClickListene
         });
     }
 
-    private void saveMessages(final List<Message> messageList) {
-        realm.executeTransactionAsync(new Realm.Transaction() {
-            @Override
-            public void execute(Realm bgRealm) {
-                bgRealm.copyToRealmOrUpdate(messageList);
+    class SendMessageThread extends Thread {
+        public String message;
+
+        //Control
+        boolean isWaitEnable;
+        boolean isSuccessful;
+
+        @Override
+        public void run() {
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.append(Constants.SERVER_URL);
+            stringBuilder.append(Constants.MENSAGEM_PATH);
+
+            Subject subject = new Subject(message);
+            final BigMessage big = new BigMessage();
+
+            while (subject.isReady()) {
+                //Control
+                isWaitEnable = true;
+                isSuccessful = false;
+
+                //Build json
+                JSONObject jsonObject = new JSONObject();
+                try {
+                    jsonObject.put("origem_id", userId);
+                    jsonObject.put("destino_id", contactId);
+                    jsonObject.put("assunto", subject.finalSubject());
+                    jsonObject.put("corpo", subject.mensagemToSend());
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                    return;
+                }
+
+                //Request
+                JsonObjectRequest request = new JsonObjectRequest
+                        (Request.Method.POST, stringBuilder.toString(), jsonObject, new Response.Listener<JSONObject>() {
+                            @Override
+                            public void onResponse(JSONObject json) {
+                                isSuccessful = true;
+                                isWaitEnable = false;
+
+                                Message message = new Gson().fromJson(json.toString(), Message.class);
+                                switch (big.bigMessageValidation(message)) {
+                                    case BigMessage.BIG_MESSAGE_ENDED:
+                                        saveMessage(big.getBigMessage());
+                                        break;
+
+                                    case BigMessage.BIG_MESSAGE_NOT_DETECTED:
+                                        saveMessage(message);
+                                        break;
+                                }
+
+                            }
+                        }, new Response.ErrorListener() {
+                            @Override
+                            public void onErrorResponse(VolleyError error) {
+                                isSuccessful = false;
+                                isWaitEnable = false;
+                            }
+                        });
+
+                requestQueue.add(request);
+
+                //wait loop to next request
+                while (isWaitEnable) {
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
+                if (!isSuccessful) {
+                    return;
+                }
+
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        editTextMessage.setText("");
+                        buttonSend.setEnabled(true);
+                        buttonSend.setAlpha(1f);
+                    }
+                });
             }
-        }, new Realm.Transaction.OnSuccess() {
-            @Override
-            public void onSuccess() {
-                setupQuery();
-                saveMessagesSynchronizedFlag();
-            }
-        }, new Realm.Transaction.OnError() {
-            @Override
-            public void onError(Throwable error) {
-            }
-        });
+            return;
+        }
     }
-
-    private void saveMessagesSynchronizedFlag() {
-        Helpers.saveCurrentUserSentMessagesToContact(this, contactId);
-    }
-
-
 }

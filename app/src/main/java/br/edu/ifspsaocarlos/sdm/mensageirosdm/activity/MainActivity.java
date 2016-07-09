@@ -1,8 +1,7 @@
 package br.edu.ifspsaocarlos.sdm.mensageirosdm.activity;
 
-import android.content.Context;
+import android.app.ProgressDialog;
 import android.content.Intent;
-import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
@@ -10,6 +9,9 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.widget.TextView;
 
 import com.android.volley.Request;
@@ -38,9 +40,12 @@ import io.realm.RealmResults;
 
 public class MainActivity extends AppCompatActivity implements ContactAdapter.OnContactClickListener {
 
+    private ProgressDialog dialog;
     private RecyclerView recyclerView;
     private ContactAdapter contactAdapter;
     private boolean stopThread;
+    private int count;
+
 
     @Override
     public void onContactClickListener(int position) {
@@ -52,13 +57,40 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
         super.onCreate(savedInstanceState);
         Log.d("SDM", "onCreate:");
 
-        TextView tvNovoContato = new TextView(this);
-        tvNovoContato.setText("Sem conexão com a internet");
-        setContentView(tvNovoContato);
+        count = 0;
+
+        dialog = new ProgressDialog(this);
+
+        TextView tvConnection = new TextView(this);
+        tvConnection.setText(R.string.txt_no_connection);
+        tvConnection.setGravity(Gravity.CENTER);
+        setContentView(tvConnection);
+    }
+
+    public boolean onCreateOptionsMenu(Menu menu)
+    {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
     }
 
     @Override
-    public void onResume(){
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.about) {
+            startAboutActivity();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onResume() {
         super.onResume();
         final Handler handler = new Handler();
 
@@ -87,7 +119,7 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
     }
 
     @Override
-    public void onPause(){
+    public void onPause() {
         super.onPause();
         Log.d("SDM", "onPause:");
         stopThread = true;
@@ -101,22 +133,33 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
         recyclerView.setLayoutManager(mLayoutManager);
         recyclerView.setHasFixedSize(false);
 
-        checkUser();
-        fetchUsers();
-        startMessagesService();
+        /**
+         * Verifica se esta cadastrado para só depois startar o que tem que startar. Sem isso ele
+         * insere você na lista de usuários pois ele acaba percorrendo o fetUser duas vezes.
+         */
+        if (checkUser()) {
+            fetchUsers();
+            startMessagesService();
+        }
     }
 
-    private void checkUser() {
+    private boolean checkUser() {
         String userId = Helpers.getUserId(this);
 
         if (TextUtils.isEmpty(userId)) {
             Intent intent = new Intent(this, UserActivity.class);
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
             startActivity(intent);
+            return false;
         }
+        return true;
     }
 
     private void fetchUsers() {
+        dialog.setTitle(R.string.pb_dialog_title);
+        dialog.setMessage(getString(R.string.pb_dialog_message));
+        dialog.show();
+
         JsonObjectRequest request = new JsonObjectRequest
                 (Request.Method.GET, Constants.SERVER_URL + Constants.CONTATO_PATH, null, new Response.Listener<JSONObject>() {
 
@@ -128,7 +171,18 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
 
                     @Override
                     public void onErrorResponse(VolleyError error) {
-                        Helpers.showDialog(MainActivity.this, R.string.dialog_content_error_fetching_user);
+                        try {
+                            count++;
+                            if (count > 3) {
+                                Helpers.showDialog(MainActivity.this, R.string.dialog_content_error_fetching_user);
+                                Log.d("SDM", "Não houve resposta dos contatos");
+                                updateAdapter();
+                            } else {
+                                fetchUsers();
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 });
 
@@ -186,6 +240,20 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
 
         contactAdapter = new ContactAdapter(result.subList(0, result.size()), this);
         recyclerView.setAdapter(contactAdapter);
+
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while (Helpers.isFirstUse(MainActivity.this)) {
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+                dialog.dismiss();
+            }
+        }).start();
     }
 
     private void startMessageActivity(String recipientId) {
@@ -197,6 +265,11 @@ public class MainActivity extends AppCompatActivity implements ContactAdapter.On
     private void startMessagesService() {
         Intent i = new Intent(this, FetchMessagesService.class);
         startService(i);
+    }
+
+    private void startAboutActivity(){
+        Intent intentNovo = new Intent(this, AboutActivity.class);
+        startActivity(intentNovo);
     }
 
 }

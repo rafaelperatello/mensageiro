@@ -8,4 +8,10 @@
     <string name="dialog_content_error_saving_profile">Erro ao salvar usuário. Tente novamente.</string>
     <string name="dialog_content_error_fetching_user">Erro ao recuperar contatos. Tente novamente.</string>
     <string name="dialog_button_ok">OK</string>
+
+    <string name="txt_no_connection">Sem conexão com a internet.</string>
+    <string name="pb_dialog_title">Realizando o carregamento dos dados</string>
+    <string name="pb_dialog_message">Aguarde o fim da requisição...</string>
+
+    <string name="about">About</string>
 </resources>
